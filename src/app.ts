@@ -1,9 +1,9 @@
-import express, { Request, Response } from 'express';
+import express from 'express';
+
+import healthRouter from './routes/health.routes';
 
 const app = express();
 
-app.get('/health', (req: Request, res: Response) => {
-  res.json({ message: 'Server is up and running' });
-});
+app.use('/health', healthRouter);
 
 export default app;
