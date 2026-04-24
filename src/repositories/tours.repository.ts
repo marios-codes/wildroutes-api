@@ -1,18 +1,13 @@
-export const findAllTours = () => {
-  return [
-    {
-      name: 'Alpine Explorer',
-      duration: 7,
-      difficulty: 'medium',
-      rating: 4.7,
-      numberOfParticipants: 12,
+import prisma from '../config/prisma';
+
+export const findAllTours = async () => {
+  return prisma.tour.findMany({
+    select: {
+      name: true,
+      duration: true,
+      difficulty: true,
+      rating: true,
+      numberOfParticipants: true,
     },
-    {
-      name: 'Forest Escape',
-      duration: 3,
-      difficulty: 'easy',
-      rating: 4.5,
-      numberOfParticipants: 8,
-    },
-  ];
+  });
 };

@@ -11,6 +11,7 @@
     "globals": "^17.4.0",
     "nodemon": "^3.1.14",
     "prettier": "^3.8.1",
+    "prisma": "^7.7.0",
     "ts-node-dev": "^2.0.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
@@ -21,6 +22,7 @@
   "description": "A production-style backend API built to simulate a real-world tours platform, inspired by the concept of “Nasty Tours”, but redesigned with a relational database (PostgreSQL) and modern backend best practices.",
   "main": "index.js",
   "dependencies": {
+    "@prisma/adapter-pg": "^7.8.0",
     "@prisma/client": "^7.6.0",
     "acorn": "^8.16.0",
     "acorn-jsx": "^5.3.2",

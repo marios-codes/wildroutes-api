@@ -1,0 +1,22 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+}
+
+enum Difficulty {
+    EASY
+    MEDIUM
+    HARD
+}
+
+model Tour {
+    id Int @id @default(autoincrement())
+    name String
+    duration Int
+    difficulty Difficulty
+    rating Float
+    numberOfParticipants Int
+}
