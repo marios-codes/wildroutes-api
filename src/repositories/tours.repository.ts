@@ -11,3 +11,18 @@ export const findAllTours = async () => {
     },
   });
 };
+
+export const findTourById = async (tourId: number) => {
+  return prisma.tour.findUnique({
+    where: {
+      id: tourId,
+    },
+    select: {
+      name: true,
+      duration: true,
+      difficulty: true,
+      rating: true,
+      numberOfParticipants: true,
+    },
+  });
+};
