@@ -7,6 +7,8 @@ import { notFoundHandler } from './middlewares/not-found.middleware';
 
 const app = express();
 
+app.use(express.json());
+
 app.use('/health', healthRouter);
 app.use('/tours', toursRouter);
 

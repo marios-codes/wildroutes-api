@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
-import { getTours, getTour } from '../services/tours.service';
+import { getTours, getTour, createTour } from '../services/tours.service';
+import type { CreateTourDto, Difficulty } from '../dtos/tours.dto';
+import { TOUR_DIFFICULTIES } from '../dtos/tours.dto';
 import { AppError } from '../utils/app-error';
 
 export const getToursHandler = async (_req: Request, res: Response) => {
@@ -17,13 +19,85 @@ export const getToursHandler = async (_req: Request, res: Response) => {
 export const getTourHandler = async (req: Request, res: Response) => {
   const tourId = Number(req.params.id);
 
-  if (isNaN(tourId)) {
+  if (Number.isNaN(tourId)) {
     throw new AppError('Invalid tour id', 400);
   }
 
   const tour = await getTour(tourId);
 
   res.status(200).json({
+    success: true,
+    data: {
+      tour,
+    },
+  });
+};
+
+export const createTourHandler = async (req: Request, res: Response) => {
+  const requiredFields = [
+    'name',
+    'duration',
+    'difficulty',
+    'numberOfParticipants',
+    'rating',
+  ] as const;
+
+  for (const field of requiredFields) {
+    if (req.body[field] === undefined) {
+      throw new AppError(`Tour ${field} is required`, 400);
+    }
+  }
+
+  if (typeof req.body.name !== 'string' || req.body.name.trim().length === 0) {
+    throw new AppError('Tour name must be a non-empty string', 400);
+  }
+
+  const numberFields = ['duration', 'numberOfParticipants', 'rating'] as const;
+
+  for (const field of numberFields) {
+    if (typeof req.body[field] !== 'number' || !Number.isFinite(req.body[field])) {
+      throw new AppError(`Tour ${field} should be of type number`, 400);
+    }
+  }
+
+  if (!Number.isInteger(req.body.duration)) {
+    throw new AppError('Tour duration must be an integer', 400);
+  }
+
+  if (req.body.duration <= 0) {
+    throw new AppError('Tour duration must be a positive value', 400);
+  }
+
+  if (!Number.isInteger(req.body.numberOfParticipants)) {
+    throw new AppError('Tour number of participants must be an integer', 400);
+  }
+
+  if (req.body.numberOfParticipants <= 0) {
+    throw new AppError('Tour number of participants must be a positive value', 400);
+  }
+
+  if (req.body.rating <= 0 || req.body.rating > 5) {
+    throw new AppError('Tour rating must be greater than 0 and less than or equal to 5', 400);
+  }
+
+  if (
+    typeof req.body.difficulty !== 'string' ||
+    !TOUR_DIFFICULTIES.includes(req.body.difficulty as Difficulty)
+  ) {
+    throw new AppError(`Tour difficulty must be one of: ${TOUR_DIFFICULTIES.join(', ')}`, 400);
+  }
+
+  const newTourData: CreateTourDto = {
+    name: req.body.name,
+    duration: req.body.duration,
+    difficulty: req.body.difficulty,
+    rating: req.body.rating,
+    numberOfParticipants: req.body.numberOfParticipants,
+  };
+
+  const tour = await createTour(newTourData);
+
+  res.status(201).json({
     success: true,
     data: {
       tour,

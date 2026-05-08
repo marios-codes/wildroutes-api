@@ -1,4 +1,9 @@
-import { findAllTours, findTourById } from '../repositories/tours.repository';
+import {
+  findAllTours,
+  findTourById,
+  createTour as createTourRepository,
+} from '../repositories/tours.repository';
+import type { CreateTourDto } from '../dtos/tours.dto';
 import { AppError } from '../utils/app-error';
 
 export const getTours = async () => {
@@ -13,4 +18,8 @@ export const getTour = async (tourId: number) => {
   }
 
   return tour;
+};
+
+export const createTour = async (tourData: CreateTourDto) => {
+  return createTourRepository(tourData);
 };
