@@ -1,4 +1,7 @@
 {
+  "engines": {
+    "node": ">=22 <23"
+  },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@types/cors": "^2.8.19",

@@ -1,9 +1,10 @@
 import prisma from '../config/prisma';
-import type { CreateTourDto } from '../dtos/tours.dto';
+import type { CreateTourDto, UpdateTourDto } from '../dtos/tours.dto';
 
 export const findAllTours = async () => {
   return prisma.tour.findMany({
     select: {
+      id: true,
       name: true,
       duration: true,
       difficulty: true,
@@ -19,6 +20,7 @@ export const findTourById = async (tourId: number) => {
       id: tourId,
     },
     select: {
+      id: true,
       name: true,
       duration: true,
       difficulty: true,
@@ -30,6 +32,21 @@ export const findTourById = async (tourId: number) => {
 
 export const createTour = async (tourData: CreateTourDto) => {
   return prisma.tour.create({
+    data: tourData,
+    select: {
+      id: true,
+      name: true,
+      duration: true,
+      difficulty: true,
+      rating: true,
+      numberOfParticipants: true,
+    },
+  });
+};
+
+export const updateTourById = async (tourId: number, tourData: UpdateTourDto) => {
+  return prisma.tour.update({
+    where: { id: tourId },
     data: tourData,
     select: {
       id: true,

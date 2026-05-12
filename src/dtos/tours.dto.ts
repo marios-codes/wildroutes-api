@@ -9,3 +9,11 @@ export type CreateTourDto = {
   rating: number;
   numberOfParticipants: number;
 };
+
+export type UpdateTourDto = {
+  name?: string;
+  duration?: number;
+  difficulty?: Difficulty;
+  rating?: number;
+  numberOfParticipants?: number;
+};
