@@ -3,6 +3,7 @@ import {
   findTourById,
   createTour as createTourRepository,
   updateTourById,
+  deleteTourById,
 } from '../repositories/tours.repository';
 import type { CreateTourDto, UpdateTourDto } from '../dtos/tours.dto';
 import { AppError } from '../utils/app-error';
@@ -33,4 +34,14 @@ export const updateTour = async (tourId: number, tourData: UpdateTourDto) => {
   }
 
   return updateTourById(tourId, tourData);
+};
+
+export const deleteTour = async (tourId: number) => {
+  const tour = await findTourById(tourId);
+
+  if (tour === null) {
+    throw new AppError('Tour not found', 404);
+  }
+
+  return deleteTourById(tourId);
 };

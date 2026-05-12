@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { getTours, getTour, createTour, updateTour } from '../services/tours.service';
+import { getTours, getTour, createTour, updateTour, deleteTour } from '../services/tours.service';
 import type { CreateTourDto, UpdateTourDto, Difficulty } from '../dtos/tours.dto';
 import { TOUR_DIFFICULTIES } from '../dtos/tours.dto';
 import { AppError } from '../utils/app-error';
@@ -204,5 +204,20 @@ export const updateTourHandler = async (req: Request, res: Response) => {
     data: {
       tour,
     },
+  });
+};
+
+export const deleteTourHandler = async (req: Request, res: Response) => {
+  const tourId = Number(req.params.id);
+
+  // Parse and validate Id
+  if (Number.isNaN(tourId)) {
+    throw new AppError('Invalid tour id', 400);
+  }
+
+  await deleteTour(tourId);
+
+  res.status(200).json({
+    success: true,
   });
 };

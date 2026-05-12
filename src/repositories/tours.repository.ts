@@ -58,3 +58,9 @@ export const updateTourById = async (tourId: number, tourData: UpdateTourDto) =>
     },
   });
 };
+
+export const deleteTourById = async (tourId: number) => {
+  return prisma.tour.delete({
+    where: { id: tourId },
+  });
+};
