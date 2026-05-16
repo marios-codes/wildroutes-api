@@ -1,4 +1,11 @@
 export const TOUR_DIFFICULTIES = ['EASY', 'MEDIUM', 'HARD'] as const;
+export const TOUR_EDITABLE_FIELDS = [
+  'name',
+  'duration',
+  'difficulty',
+  'numberOfParticipants',
+  'rating',
+] as const;
 
 export type Difficulty = (typeof TOUR_DIFFICULTIES)[number];
 
