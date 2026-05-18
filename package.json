@@ -7,6 +7,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^25.5.2",
+    "@types/supertest": "^7.2.0",
     "@typescript-eslint/eslint-plugin": "^8.58.0",
     "@typescript-eslint/parser": "^8.58.0",
     "eslint": "^10.1.0",
@@ -18,7 +19,8 @@
     "ts-node-dev": "^2.0.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.2",
-    "typescript-eslint": "^8.58.0"
+    "typescript-eslint": "^8.58.0",
+    "vitest": "^4.1.6"
   },
   "name": "wildroutes-api",
   "version": "1.0.0",
@@ -93,6 +95,8 @@
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "start": "node dist/server.js",
+    "test": "vitest",
+    "test:run": "vitest run",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write ."
