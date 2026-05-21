@@ -40,16 +40,25 @@ describe('GET /tours/:id', () => {
 
 describe('POST /tours', () => {
   it('creates a new tour in the database', async () => {
-    const { createTourPayload, createTourResponse, createdTour, createdTourId } =
-      await createTestTour();
+    let createdTourId: number | undefined;
+    try {
+      const {
+        createTourPayload,
+        createTourResponse,
+        createdTour,
+        createdTourId: id,
+      } = await createTestTour();
 
-    expect(createTourResponse.status).toBe(201);
-    expect(createTourResponse.body).toHaveProperty('success', true);
-    expect(createdTour).toHaveProperty('id');
-    expect(createdTour).toMatchObject(createTourPayload);
+      createdTourId = id;
 
-    const deleteCreatedTourResponse = await request(app).delete(`/tours/${createdTourId}`);
-    expect(deleteCreatedTourResponse.status).toBe(200);
+      expect(createTourResponse.status).toBe(201);
+      expect(createTourResponse.body).toHaveProperty('success', true);
+      expect(createdTour).toHaveProperty('id');
+      expect(createdTour).toMatchObject(createTourPayload);
+    } finally {
+      const deleteCreatedTourResponse = await request(app).delete(`/tours/${createdTourId}`);
+      expect(deleteCreatedTourResponse.status).toBe(200);
+    }
   });
   it('returns 400 when tour name is empty', async () => {
     const createTourPayload = {
@@ -64,6 +73,20 @@ describe('POST /tours', () => {
     expect(response.status).toBe(400);
     expect(response.body).toHaveProperty('success', false);
     expect(response.body).toHaveProperty('message', 'Tour name must be a non-empty string');
+  });
+  it('returns 400 when create body contains an unknown field', async () => {
+    const createTourPayload = {
+      name: 'Forest Canyon Trail',
+      duration: 3,
+      difficulty: 'EASY',
+      rating: 4.6,
+      numberOfParticipants: 12,
+      price: 100,
+    };
+
+    const response = await request(app).post('/tours').send(createTourPayload);
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty('success', false);
   });
 });
 
@@ -100,7 +123,7 @@ describe('PATCH /tours/:id', () => {
     });
     expect(updateTourResponse.status).toBe(400);
     expect(updateTourResponse.body).toHaveProperty('success', false);
-    expect(updateTourResponse.body).toHaveProperty('message', 'Invalid Fields: price');
+    expect(updateTourResponse.body).toHaveProperty('message', 'Unrecognized key: "price"');
   });
 });
 

@@ -22,6 +22,23 @@ describe('validateCreateTourBody', () => {
       numberOfParticipants: 12,
     });
   });
+  it('trims whitespace from tour name', () => {
+    expect(
+      validateCreateTourBody({
+        name: '  Forest Canyon Trail  ',
+        duration: 3,
+        difficulty: 'EASY',
+        rating: 4.6,
+        numberOfParticipants: 12,
+      }),
+    ).toStrictEqual({
+      name: 'Forest Canyon Trail',
+      duration: 3,
+      difficulty: 'EASY',
+      rating: 4.6,
+      numberOfParticipants: 12,
+    });
+  });
   it('throws when name is an empty string', () => {
     expect(() =>
       validateCreateTourBody({
@@ -33,8 +50,21 @@ describe('validateCreateTourBody', () => {
       }),
     ).toThrow('Tour name must be a non-empty string');
   });
+  it('throws when create body contains an unknown field', () => {
+    expect(() =>
+      validateCreateTourBody({
+        name: 'Forest Canyon Trail',
+        duration: 3,
+        difficulty: 'EASY',
+        rating: 4.6,
+        numberOfParticipants: 12,
+        price: 100,
+      }),
+    ).toThrow();
+  });
+
   it('throws when request body is not an object', () => {
-    expect(() => validateCreateTourBody(null)).toThrow('Request body must be an object');
+    expect(() => validateCreateTourBody(null)).toThrow();
   });
 });
 
@@ -52,6 +82,6 @@ describe('validateUpdateTourBody', () => {
     expect(() => validateUpdateTourBody({})).toThrow('You must provide at least one tour field');
   });
   it('throws when request body contains an unknown field', () => {
-    expect(() => validateUpdateTourBody({ price: 100 })).toThrow('Invalid Fields: price');
+    expect(() => validateUpdateTourBody({ price: 100 })).toThrow('Unrecognized key: "price"');
   });
 });
