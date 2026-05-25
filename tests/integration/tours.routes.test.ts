@@ -14,15 +14,21 @@ describe('GET /tours', () => {
 });
 
 describe('GET /tours/:id', () => {
-  it('returns a tour by id from the tours list', async () => {
-    const allToursResponse = await request(app).get('/tours');
-    expect(allToursResponse.body.data.tours.length).toBeGreaterThan(0);
-    const firstTourId = allToursResponse.body.data.tours[0].id;
+  it('returns a tour by id', async () => {
+    const { createTourResponse, createdTourId } = await createTestTour();
 
-    const firstTourResponse = await request(app).get(`/tours/${firstTourId}`);
-    expect(firstTourResponse.status).toBe(200);
-    expect(firstTourResponse.body).toHaveProperty('success', true);
-    expect(firstTourResponse.body.data.tour.id).toBe(firstTourId);
+    expect(createTourResponse.status).toBe(201);
+
+    try {
+      const response = await request(app).get(`/tours/${createdTourId}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body.data.tour.id).toBe(createdTourId);
+    } finally {
+      const deleteCreatedTourResponse = await request(app).delete(`/tours/${createdTourId}`);
+      expect(deleteCreatedTourResponse.status).toBe(200);
+    }
   });
   it('returns 404 and not found message when tour does not exist', async () => {
     const tourResponse = await request(app).get('/tours/999999');
@@ -56,8 +62,10 @@ describe('POST /tours', () => {
       expect(createdTour).toHaveProperty('id');
       expect(createdTour).toMatchObject(createTourPayload);
     } finally {
-      const deleteCreatedTourResponse = await request(app).delete(`/tours/${createdTourId}`);
-      expect(deleteCreatedTourResponse.status).toBe(200);
+      if (createdTourId !== undefined) {
+        const deleteCreatedTourResponse = await request(app).delete(`/tours/${createdTourId}`);
+        expect(deleteCreatedTourResponse.status).toBe(200);
+      }
     }
   });
   it('returns 400 when tour name is empty', async () => {

@@ -170,3 +170,57 @@ The application is fully dockerized for consistent development.
 ```bash
 docker-compose up --build
 ```
+
+---
+
+## Testing
+
+This project uses Vitest for automated tests.
+
+### Unit Tests
+
+Unit tests cover isolated application logic such as validators and utility functions.
+
+They do not require Docker or PostgreSQL.
+
+```bash
+npm run test:unit
+```
+
+### Integration Tests
+
+Integration tests exercise the Express API through Supertest and use a separate PostgreSQL test database.
+
+```bash
+npm run test:integration
+```
+
+Integration tests require:
+
+- Docker/PostgreSQL running
+- `TEST_DATABASE_URL` defined in `.env`
+- the test database created
+- migrations applied to the test database
+
+Example `.env` values:
+
+```env
+DATABASE_URL="postgresql://<user>:<password>@localhost:5432/wildroutes_dev"
+TEST_DATABASE_URL="postgresql://<user>:<password>@localhost:5432/wildroutes_test"
+```
+
+Create the test database once:
+
+```bash
+docker compose exec postgres createdb -U postgres wildroutes_test
+```
+
+Apply migrations to the test database:
+
+```bash
+DATABASE_URL="postgresql://<user>:<password>@localhost:5432/wildroutes_test" npx prisma migrate deploy
+```
+
+Use the same local credentials configured in `docker-compose.yml`.
+
+The integration test setup maps `TEST_DATABASE_URL` to `DATABASE_URL` before the app is imported, so integration tests run against `wildroutes_test` instead of the development database.
