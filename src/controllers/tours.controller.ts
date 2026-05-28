@@ -1,14 +1,20 @@
 import { Request, Response } from 'express';
 import { getTours, getTour, createTour, updateTour, deleteTour } from '../services/tours.service';
 import parseId from '../utils/parse-id';
-import { validateCreateTourBody, validateUpdateTourBody } from '../validators/tours.validator';
+import {
+  validateCreateTourBody,
+  validateUpdateTourBody,
+  validateGetToursQuery,
+} from '../validators/tours.validator';
 
-export const getToursHandler = async (_req: Request, res: Response) => {
-  const tours = await getTours();
+export const getToursHandler = async (req: Request, res: Response) => {
+  const query = validateGetToursQuery(req.query);
+  const { tours, pagination } = await getTours(query);
 
   res.status(200).json({
     success: true,
     count: tours.length,
+    pagination,
     data: {
       tours,
     },

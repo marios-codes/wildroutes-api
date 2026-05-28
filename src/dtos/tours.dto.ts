@@ -17,3 +17,8 @@ export type UpdateTourDto = {
   rating?: number;
   numberOfParticipants?: number;
 };
+
+export type GetToursQueryDto = {
+  page: number;
+  limit: number;
+};

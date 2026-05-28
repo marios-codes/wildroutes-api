@@ -1,15 +1,32 @@
 import {
   findAllTours,
+  countAllTours,
   findTourById,
   createTour as createTourRepository,
   updateTourById,
   deleteTourById,
 } from '../repositories/tours.repository';
-import type { CreateTourDto, UpdateTourDto } from '../dtos/tours.dto';
+import type { CreateTourDto, GetToursQueryDto, UpdateTourDto } from '../dtos/tours.dto';
 import { AppError } from '../utils/app-error';
 
-export const getTours = async () => {
-  return findAllTours();
+export const getTours = async (queryData: GetToursQueryDto) => {
+  const { page, limit } = queryData;
+
+  const skip = (page - 1) * limit;
+  const take = limit;
+  const tours = await findAllTours({ skip, take });
+  const totalItems = await countAllTours();
+  const totalPages = Math.ceil(totalItems / limit);
+
+  return {
+    tours,
+    pagination: {
+      page,
+      limit,
+      totalItems,
+      totalPages,
+    },
+  };
 };
 
 export const getTour = async (tourId: number) => {

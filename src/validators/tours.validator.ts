@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { CreateTourDto, TOUR_DIFFICULTIES, UpdateTourDto } from '../dtos/tours.dto';
+import {
+  CreateTourDto,
+  TOUR_DIFFICULTIES,
+  UpdateTourDto,
+  GetToursQueryDto,
+} from '../dtos/tours.dto';
 import { AppError } from '../utils/app-error';
 
 const createTourSchema = z
@@ -30,6 +35,22 @@ const updateTourSchema = createTourSchema
   .partial()
   .refine((data) => Object.keys(data).length > 0, 'You must provide at least one tour field');
 
+const getToursQuerySchema = z
+  .object({
+    page: z.coerce
+      .number({ error: 'Page parameter should be of type number' })
+      .int('Page parameter must be an integer')
+      .min(1, 'Page parameter must be a positive value')
+      .default(1),
+    limit: z.coerce
+      .number({ error: 'Limit parameter should be of type number' })
+      .int('Limit parameter must be an integer')
+      .min(1, 'Limit parameter must be a positive value')
+      .max(100, 'Limit parameter cannot exceed 100')
+      .default(10),
+  })
+  .strict();
+
 export const validateCreateTourBody = (reqBody: unknown): CreateTourDto => {
   const validationResult = createTourSchema.safeParse(reqBody);
 
@@ -46,6 +67,17 @@ export const validateUpdateTourBody = (reqBody: unknown): UpdateTourDto => {
 
   if (!validationResult.success) {
     const message = validationResult.error.issues[0]?.message ?? 'Invalid tour data';
+    throw new AppError(message, 400);
+  }
+
+  return validationResult.data;
+};
+
+export const validateGetToursQuery = (reqQuery: unknown): GetToursQueryDto => {
+  const validationResult = getToursQuerySchema.safeParse(reqQuery);
+
+  if (!validationResult.success) {
+    const message = validationResult.error.issues[0]?.message ?? 'Invalid tour query params';
     throw new AppError(message, 400);
   }
 

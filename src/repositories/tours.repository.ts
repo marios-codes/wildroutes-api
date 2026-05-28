@@ -1,8 +1,15 @@
 import prisma from '../config/prisma';
 import type { CreateTourDto, UpdateTourDto } from '../dtos/tours.dto';
 
-export const findAllTours = async () => {
+type FindAllToursOptions = {
+  skip: number;
+  take: number;
+};
+
+export const findAllTours = async ({ skip, take }: FindAllToursOptions) => {
   return prisma.tour.findMany({
+    skip,
+    take,
     select: {
       id: true,
       name: true,
@@ -11,7 +18,12 @@ export const findAllTours = async () => {
       rating: true,
       numberOfParticipants: true,
     },
+    orderBy: { id: 'asc' },
   });
+};
+
+export const countAllTours = async () => {
+  return prisma.tour.count();
 };
 
 export const findTourById = async (tourId: number) => {

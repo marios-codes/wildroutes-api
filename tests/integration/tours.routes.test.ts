@@ -11,6 +11,77 @@ describe('GET /tours', () => {
     expect(Array.isArray(response.body.data.tours)).toBe(true);
     expect(response.body.count).toBe(response.body.data.tours.length);
   });
+  it('returns 200 when valid pagination query params are provided', async () => {
+    const response = await request(app).get('/tours?page=2&limit=5');
+
+    expect(response.status).toBe(200);
+    expect(response.body).toHaveProperty('success', true);
+    expect(Array.isArray(response.body.data.tours)).toBe(true);
+    expect(response.body.pagination.page).toBe(2);
+    expect(response.body.pagination.limit).toBe(5);
+    expect(response.body.pagination).toHaveProperty('totalItems', expect.any(Number));
+    expect(response.body.pagination).toHaveProperty('totalPages', expect.any(Number));
+  });
+  it('returns at most one tour when limit is 1', async () => {
+    const response = await request(app).get('/tours?limit=1');
+
+    expect(response.status).toBe(200);
+    expect(response.body.data.tours.length).toBeLessThanOrEqual(1);
+    expect(response.body.count).toBe(response.body.data.tours.length);
+  });
+  it('returns the second tour when page is 2 and limit is 1', async () => {
+    let firstTourId: number | undefined;
+    let secondTourId: number | undefined;
+
+    try {
+      const first = await createTestTour();
+      const second = await createTestTour();
+
+      firstTourId = first.createdTourId;
+      secondTourId = second.createdTourId;
+
+      expect(first.createTourResponse.status).toBe(201);
+      expect(second.createTourResponse.status).toBe(201);
+
+      const response = await request(app).get('/tours?page=2&limit=1');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body.data.tours[0].id).toBe(secondTourId);
+    } finally {
+      if (firstTourId !== undefined) {
+        await request(app).delete(`/tours/${firstTourId}`);
+      }
+
+      if (secondTourId !== undefined) {
+        await request(app).delete(`/tours/${secondTourId}`);
+      }
+    }
+  });
+  it('returns 400 when page param is 0', async () => {
+    const tourResponse = await request(app).get('/tours/?page=0');
+    expect(tourResponse.status).toBe(400);
+    expect(tourResponse.body).toHaveProperty('success', false);
+    expect(tourResponse.body).toHaveProperty('message', 'Page parameter must be a positive value');
+  });
+  it('returns 400 when limit param is not a number', async () => {
+    const tourResponse = await request(app).get('/tours?limit=abc');
+    expect(tourResponse.status).toBe(400);
+    expect(tourResponse.body).toHaveProperty('success', false);
+    expect(tourResponse.body).toHaveProperty('message', 'Limit parameter should be of type number');
+  });
+  it('returns 400 when limit param is greater than 100', async () => {
+    const tourResponse = await request(app).get('/tours?limit=101');
+    expect(tourResponse.status).toBe(400);
+    expect(tourResponse.body).toHaveProperty('success', false);
+    expect(tourResponse.body).toHaveProperty('message', 'Limit parameter cannot exceed 100');
+  });
+  it('returns 400 when unknown param is provided', async () => {
+    const tourResponse = await request(app).get('/tours?price=100');
+    expect(tourResponse.status).toBe(400);
+    expect(tourResponse.body).toHaveProperty('success', false);
+    expect(tourResponse.body).toHaveProperty('message', 'Unrecognized key: "price"');
+  });
 });
 
 describe('GET /tours/:id', () => {
