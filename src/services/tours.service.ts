@@ -10,12 +10,12 @@ import type { CreateTourDto, GetToursQueryDto, UpdateTourDto } from '../dtos/tou
 import { AppError } from '../utils/app-error';
 
 export const getTours = async (queryData: GetToursQueryDto) => {
-  const { page, limit } = queryData;
+  const { page, limit, difficulty } = queryData;
 
   const skip = (page - 1) * limit;
   const take = limit;
-  const tours = await findAllTours({ skip, take });
-  const totalItems = await countAllTours();
+  const tours = await findAllTours({ skip, take, difficulty });
+  const totalItems = await countAllTours(difficulty);
   const totalPages = Math.ceil(totalItems / limit);
 
   return {

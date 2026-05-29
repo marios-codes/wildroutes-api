@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import app from '../../src/app';
+import { TOUR_DIFFICULTIES } from '../../src/dtos/tours.dto';
 
 describe('GET /tours', () => {
   it('returns an array of tours', async () => {
@@ -28,6 +29,17 @@ describe('GET /tours', () => {
     expect(response.status).toBe(200);
     expect(response.body.data.tours.length).toBeLessThanOrEqual(1);
     expect(response.body.count).toBe(response.body.data.tours.length);
+  });
+  it('returns 200 when valid difficulty is provided', async () => {
+    const response = await request(app).get('/tours?difficulty=EASY');
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(Array.isArray(response.body.data.tours)).toBe(true);
+    expect(response.body.pagination).toHaveProperty('totalItems', expect.any(Number));
+    expect(
+      response.body.data.tours.every((tour: { difficulty: string }) => tour.difficulty === 'EASY'),
+    ).toBe(true);
   });
   it('returns the second tour when page is 2 and limit is 1', async () => {
     let firstTourId: number | undefined;
@@ -81,6 +93,15 @@ describe('GET /tours', () => {
     expect(tourResponse.status).toBe(400);
     expect(tourResponse.body).toHaveProperty('success', false);
     expect(tourResponse.body).toHaveProperty('message', 'Unrecognized key: "price"');
+  });
+  it('returns 400 when invalid difficulty param is provided', async () => {
+    const tourResponse = await request(app).get('/tours?difficulty=EXTREME');
+    expect(tourResponse.status).toBe(400);
+    expect(tourResponse.body).toHaveProperty('success', false);
+    expect(tourResponse.body).toHaveProperty(
+      'message',
+      `Tour difficulty must be one of: ${TOUR_DIFFICULTIES.join(', ')}`,
+    );
   });
 });
 

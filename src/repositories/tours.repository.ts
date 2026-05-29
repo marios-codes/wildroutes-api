@@ -1,12 +1,13 @@
 import prisma from '../config/prisma';
-import type { CreateTourDto, UpdateTourDto } from '../dtos/tours.dto';
+import type { CreateTourDto, UpdateTourDto, Difficulty } from '../dtos/tours.dto';
 
 type FindAllToursOptions = {
   skip: number;
   take: number;
+  difficulty?: Difficulty;
 };
 
-export const findAllTours = async ({ skip, take }: FindAllToursOptions) => {
+export const findAllTours = async ({ skip, take, difficulty }: FindAllToursOptions) => {
   return prisma.tour.findMany({
     skip,
     take,
@@ -18,11 +19,15 @@ export const findAllTours = async ({ skip, take }: FindAllToursOptions) => {
       rating: true,
       numberOfParticipants: true,
     },
+    where: difficulty !== undefined ? { difficulty } : undefined,
     orderBy: { id: 'asc' },
   });
 };
 
-export const countAllTours = async () => {
+export const countAllTours = async (difficulty?: Difficulty) => {
+  if (difficulty !== undefined) {
+    return prisma.tour.count({ where: { difficulty } });
+  }
   return prisma.tour.count();
 };
 

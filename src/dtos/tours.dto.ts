@@ -21,4 +21,5 @@ export type UpdateTourDto = {
 export type GetToursQueryDto = {
   page: number;
   limit: number;
+  difficulty?: Difficulty;
 };

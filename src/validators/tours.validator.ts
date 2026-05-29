@@ -48,6 +48,9 @@ const getToursQuerySchema = z
       .min(1, 'Limit parameter must be a positive value')
       .max(100, 'Limit parameter cannot exceed 100')
       .default(10),
+    difficulty: z
+      .enum(TOUR_DIFFICULTIES, `Tour difficulty must be one of: ${TOUR_DIFFICULTIES.join(', ')}`)
+      .optional(),
   })
   .strict();
 

@@ -4,6 +4,7 @@ import {
   validateUpdateTourBody,
   validateGetToursQuery,
 } from '../../../src/validators/tours.validator';
+import { TOUR_DIFFICULTIES } from '../../../src/dtos/tours.dto';
 
 describe('validateCreateTourBody', () => {
   it('returns a CreateTourDto for a valid body', () => {
@@ -105,6 +106,13 @@ describe('validateGetToursQuery', () => {
       limit: 10,
     });
   });
+  it('returns default pagination values when only difficulty is provided', () => {
+    expect(validateGetToursQuery({ difficulty: 'EASY' })).toStrictEqual({
+      page: 1,
+      limit: 10,
+      difficulty: 'EASY',
+    });
+  });
   it('throws when request params contain an unknown field', () => {
     expect(() => validateGetToursQuery({ price: '100' })).toThrow('Unrecognized key: "price"');
   });
@@ -121,6 +129,11 @@ describe('validateGetToursQuery', () => {
   it('throws when page request param is not a positive number', () => {
     expect(() => validateGetToursQuery({ page: '0' })).toThrow(
       'Page parameter must be a positive value',
+    );
+  });
+  it('throws when invalid difficulty param is provided', () => {
+    expect(() => validateGetToursQuery({ difficulty: 'EXTREME' })).toThrow(
+      `Tour difficulty must be one of: ${TOUR_DIFFICULTIES.join(', ')}`,
     );
   });
   it('uses the default limit when only page is provided', () => {
