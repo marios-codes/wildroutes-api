@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import app from '../../src/app';
 import prisma from '../../src/config/prisma';
+import { verifyAuthToken } from '../../src/utils/jwt';
 
 describe('POST /auth/register', () => {
   it('returns 201 and safe user data', async () => {
@@ -13,12 +14,16 @@ describe('POST /auth/register', () => {
 
       const createdUser = createUserResponse.body.data.user;
       createdUserId = createdUser.id;
+      const token = createUserResponse.body.data.token;
+      const decodedToken = verifyAuthToken(token);
 
       expect(createUserResponse.body).toHaveProperty('success', true);
       expect(createdUser).toHaveProperty('id');
       expect(createdUser.name).toBe(createUserPayload.name);
       expect(createdUser.email).toBe(createUserPayload.email);
       expect(createdUser.role).toBe('USER');
+      expect(decodedToken.sub).toBe(String(createdUserId));
+      expect(decodedToken.role).toBe('USER');
       expect(createdUser).not.toHaveProperty('password');
       expect(createdUser).not.toHaveProperty('passwordHash');
     } finally {
@@ -108,10 +113,14 @@ describe('POST /auth/login', () => {
 
       const loginResponse = await request(app).post('/auth/login').send(loginUserPayload);
       const loggedInUser = loginResponse.body.data.user;
+      const token = loginResponse.body.data.token;
+      const decodedToken = verifyAuthToken(token);
 
       expect(loginResponse.status).toBe(200);
       expect(loginResponse.body.success).toBe(true);
       expect(loggedInUser.email).toBe(loginUserPayload.email);
+      expect(decodedToken.sub).toBe(String(loggedInUser.id));
+      expect(decodedToken.role).toBe('USER');
       expect(loggedInUser).not.toHaveProperty('password');
       expect(loggedInUser).not.toHaveProperty('passwordHash');
     } finally {

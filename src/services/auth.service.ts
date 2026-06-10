@@ -1,11 +1,12 @@
 import bcrypt from 'bcrypt';
-import type { LoginUserDto, RegisterUserDto, UserResponseDto } from '../dtos/auth.dto';
+import type { AuthResponseDto, LoginUserDto, RegisterUserDto } from '../dtos/auth.dto';
 import { findUserByEmail, createUser } from '../repositories/users.repository';
 import { AppError } from '../utils/app-error';
+import { signAuthToken } from '../utils/jwt';
 
 const BCRYPT_SALT_ROUNDS = 12;
 
-export const registerUser = async (registerUserData: RegisterUserDto): Promise<UserResponseDto> => {
+export const registerUser = async (registerUserData: RegisterUserDto): Promise<AuthResponseDto> => {
   const { name, email, password } = registerUserData;
 
   const existingUser = await findUserByEmail(email);
@@ -15,10 +16,13 @@ export const registerUser = async (registerUserData: RegisterUserDto): Promise<U
 
   const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
-  return createUser({ name, email, passwordHash });
+  const newUser = await createUser({ name, email, passwordHash });
+  const token = signAuthToken(newUser.id, newUser.role);
+
+  return { user: newUser, token };
 };
 
-export const loginUser = async (loginUserData: LoginUserDto): Promise<UserResponseDto> => {
+export const loginUser = async (loginUserData: LoginUserDto): Promise<AuthResponseDto> => {
   const { email: loginEmail, password } = loginUserData;
   const existingUser = await findUserByEmail(loginEmail);
   if (existingUser === null) {
@@ -32,5 +36,7 @@ export const loginUser = async (loginUserData: LoginUserDto): Promise<UserRespon
   }
 
   const { id, name, email, role } = existingUser;
-  return { name, email, id, role };
+  const user = { id, name, email, role };
+  const token = signAuthToken(user.id, user.role);
+  return { user, token };
 };
