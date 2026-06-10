@@ -180,6 +180,54 @@ describe('POST /auth/login', () => {
   });
 });
 
+describe('GET /auth/me', () => {
+  it('returns 401 when authorization header is missing', async () => {
+    const response = await request(app).get('/auth/me');
+
+    expect(response.status).toBe(401);
+    expect(response.body).toHaveProperty('success', false);
+    expect(response.body).toHaveProperty('message', 'Authentication required');
+  });
+  it('returns 401 when token is invalid', async () => {
+    const response = await request(app)
+      .get('/auth/me')
+      .set('Authorization', 'Bearer invalid-token');
+
+    expect(response.status).toBe(401);
+    expect(response.body).toHaveProperty('success', false);
+    expect(response.body).toHaveProperty('message', 'Invalid or expired token');
+  });
+  it('returns current authenticated user identity', async () => {
+    let createdUserId: number | undefined;
+
+    try {
+      const { createUserResponse } = await createTestUser();
+
+      expect(createUserResponse.status).toBe(201);
+
+      const createdUser = createUserResponse.body.data.user;
+      const token = createUserResponse.body.data.token;
+
+      createdUserId = createdUser.id;
+
+      const response = await request(app).get('/auth/me').set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body.data.user.id).toBe(createdUser.id);
+      expect(response.body.data.user.role).toBe('USER');
+    } finally {
+      if (createdUserId !== undefined) {
+        const deleteCreatedUserResponse = await prisma.user.deleteMany({
+          where: { id: createdUserId },
+        });
+
+        expect(deleteCreatedUserResponse.count).toBe(1);
+      }
+    }
+  });
+});
+
 const createTestUser = async () => {
   const createUserPayload = {
     name: `Integration Test User ${Date.now()}`,

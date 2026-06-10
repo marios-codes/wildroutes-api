@@ -31,3 +31,8 @@ export type AuthTokenPayload = JwtPayload & {
   sub: string;
   role: Role;
 };
+
+export type AuthenticatedUser = {
+  id: number;
+  role: Role;
+};
