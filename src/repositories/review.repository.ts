@@ -1,7 +1,10 @@
 import prisma from '../config/prisma';
-import type { CreateReviewData } from '../dtos/review.dto';
+import type { CreateReviewData, ReviewResponseDto } from '../dtos/review.dto';
 
-export const findReviewByUserAndTour = async (userId: number, tourId: number) => {
+export const findReviewByUserAndTour = async (
+  userId: number,
+  tourId: number,
+): Promise<ReviewResponseDto | null> => {
   return prisma.review.findUnique({
     where: {
       userId_tourId: {
@@ -21,7 +24,7 @@ export const findReviewByUserAndTour = async (userId: number, tourId: number) =>
   });
 };
 
-export const createReview = async (reviewData: CreateReviewData) => {
+export const createReview = async (reviewData: CreateReviewData): Promise<ReviewResponseDto> => {
   return prisma.review.create({
     data: reviewData,
     select: {

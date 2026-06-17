@@ -9,3 +9,13 @@ export type CreateReviewData = {
   userId: number;
   tourId: number;
 };
+
+export type ReviewResponseDto = {
+  id: number;
+  rating: number;
+  comment: string;
+  userId: number;
+  tourId: number;
+  createdAt: Date;
+  updatedAt: Date;
+};
