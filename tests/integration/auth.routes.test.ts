@@ -3,6 +3,7 @@ import request from 'supertest';
 import app from '../../src/app';
 import prisma from '../../src/config/prisma';
 import { verifyAuthToken } from '../../src/utils/jwt';
+import { createTestUser } from '../helpers/test-data';
 
 describe('POST /auth/register', () => {
   it('returns 201 and safe user data', async () => {
@@ -227,18 +228,3 @@ describe('GET /auth/me', () => {
     }
   });
 });
-
-const createTestUser = async () => {
-  const createUserPayload = {
-    name: `Integration Test User ${Date.now()}`,
-    email: `user-${Date.now()}@test.com`,
-    password: 'password',
-  };
-
-  const createUserResponse = await request(app).post('/auth/register').send(createUserPayload);
-
-  return {
-    createUserPayload,
-    createUserResponse,
-  };
-};

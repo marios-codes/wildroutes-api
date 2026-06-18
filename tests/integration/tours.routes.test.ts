@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import request from 'supertest';
 import app from '../../src/app';
+import prisma from '../../src/config/prisma';
 import { TOUR_DIFFICULTIES } from '../../src/dtos/tours.dto';
+import { createTestReview, createTestTour, createTestUser } from '../helpers/test-data';
 
 describe('GET /tours', () => {
   it('returns an array of tours', async () => {
@@ -55,11 +57,19 @@ describe('GET /tours', () => {
       expect(first.createTourResponse.status).toBe(201);
       expect(second.createTourResponse.status).toBe(201);
 
+      const expectedTours = await prisma.tour.findMany({
+        skip: 1,
+        take: 1,
+        select: { id: true },
+        orderBy: { id: 'asc' },
+      });
+
       const response = await request(app).get('/tours?page=2&limit=1');
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveProperty('success', true);
-      expect(response.body.data.tours[0].id).toBe(secondTourId);
+      expect(response.body.data.tours).toHaveLength(expectedTours.length);
+      expect(response.body.data.tours[0].id).toBe(expectedTours[0].id);
     } finally {
       if (firstTourId !== undefined) {
         await request(app).delete(`/tours/${firstTourId}`);
@@ -243,21 +253,240 @@ describe('DELETE /tours/:id', () => {
   });
 });
 
-const createTestTour = async () => {
-  const createTourPayload = {
-    name: `Integration Test Tour ${Date.now()}`,
-    duration: 2,
-    difficulty: 'EASY',
-    rating: 4.4,
-    numberOfParticipants: 5,
-  };
+describe('POST /tours/:tourId/reviews', () => {
+  it('creates a new tour review in the database', async () => {
+    let createdTourId: number | undefined;
+    let createdUserId: number | undefined;
+    let createdReviewId: number | undefined;
+    try {
+      const { createTourResponse, createdTourId: tourId } = await createTestTour();
 
-  const createTourResponse = await request(app).post('/tours').send(createTourPayload);
+      expect(createTourResponse.status).toBe(201);
+      expect(createTourResponse.body).toHaveProperty('success', true);
 
-  return {
-    createTourPayload,
-    createTourResponse,
-    createdTour: createTourResponse.body.data.tour,
-    createdTourId: createTourResponse.body.data.tour.id,
-  };
-};
+      createdTourId = tourId;
+
+      const { createUserResponse, createdUserId: userId } = await createTestUser();
+
+      expect(createUserResponse.status).toBe(201);
+      expect(createUserResponse.body).toHaveProperty('success', true);
+
+      createdUserId = userId;
+      const token = createUserResponse.body.data.token;
+
+      expect(token).toEqual(expect.any(String));
+      expect(token.length).toBeGreaterThan(20);
+
+      const {
+        createReviewPayload,
+        createReviewResponse,
+      } = await createTestReview(tourId, token);
+
+      expect(createReviewResponse.status).toBe(201);
+      expect(createReviewResponse.body).toHaveProperty('success', true);
+
+      const createdReview = createReviewResponse.body.data.review;
+      createdReviewId = createdReview.id;
+
+      expect(createReviewResponse.body.data.review.userId).toBe(createdUserId);
+      expect(createReviewResponse.body.data.review.tourId).toBe(createdTourId);
+      expect(createReviewPayload.comment).toBe(createdReview.comment);
+      expect(createReviewPayload.rating).toBe(createdReview.rating);
+    } finally {
+      if (createdReviewId !== undefined) {
+        const deleteCreatedReviewResponse = await prisma.review.deleteMany({
+          where: { id: createdReviewId },
+        });
+        expect(deleteCreatedReviewResponse.count).toBe(1);
+      }
+      if (createdTourId !== undefined) {
+        const deleteCreatedTourResponse = await request(app).delete(`/tours/${createdTourId}`);
+        expect(deleteCreatedTourResponse.status).toBe(200);
+      }
+      if (createdUserId !== undefined) {
+        const deleteCreatedUserResponse = await prisma.user.deleteMany({
+          where: { id: createdUserId },
+        });
+        expect(deleteCreatedUserResponse.count).toBe(1);
+      }
+    }
+  });
+  it('returns 401 when missing token', async () => {
+    let createdTourId: number | undefined;
+    try {
+      const { createTourResponse, createdTourId: tourId } = await createTestTour();
+
+      expect(createTourResponse.status).toBe(201);
+      expect(createTourResponse.body).toHaveProperty('success', true);
+
+      createdTourId = tourId;
+
+      const createReviewPayload = { rating: 4, comment: `Integration Test Comment ${Date.now()}` };
+
+      const createReviewResponse = await request(app)
+        .post(`/tours/${tourId}/reviews`)
+        .send(createReviewPayload);
+
+      expect(createReviewResponse.status).toBe(401);
+      expect(createReviewResponse.body).toHaveProperty('success', false);
+      expect(createReviewResponse.body).toHaveProperty('message', 'Authentication required');
+    } finally {
+      if (createdTourId !== undefined) {
+        const deleteCreatedTourResponse = await request(app).delete(`/tours/${createdTourId}`);
+        expect(deleteCreatedTourResponse.status).toBe(200);
+      }
+    }
+  });
+  it('returns 400 when invalid body', async () => {
+    let createdTourId: number | undefined;
+    let createdUserId: number | undefined;
+    try {
+      const { createTourResponse, createdTourId: tourId } = await createTestTour();
+
+      expect(createTourResponse.status).toBe(201);
+      expect(createTourResponse.body).toHaveProperty('success', true);
+
+      createdTourId = tourId;
+
+      const { createUserResponse, createdUserId: userId } = await createTestUser();
+
+      expect(createUserResponse.status).toBe(201);
+      expect(createUserResponse.body).toHaveProperty('success', true);
+
+      createdUserId = userId;
+      const token = createUserResponse.body.data.token;
+
+      expect(token).toEqual(expect.any(String));
+      expect(token.length).toBeGreaterThan(20);
+
+      const createReviewPayload = {
+        rating: 4,
+        comment: `Integration Test Comment ${Date.now()}`,
+        user: 'TestUser',
+      };
+
+      const createReviewResponse = await request(app)
+        .post(`/tours/${tourId}/reviews`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(createReviewPayload);
+
+      expect(createReviewResponse.status).toBe(400);
+      expect(createReviewResponse.body).toHaveProperty('success', false);
+      expect(createReviewResponse.body).toHaveProperty('message', 'Unrecognized key: "user"');
+    } finally {
+      if (createdTourId !== undefined) {
+        const deleteCreatedTourResponse = await request(app).delete(`/tours/${createdTourId}`);
+        expect(deleteCreatedTourResponse.status).toBe(200);
+      }
+      if (createdUserId !== undefined) {
+        const deleteCreatedUserResponse = await prisma.user.deleteMany({
+          where: { id: createdUserId },
+        });
+        expect(deleteCreatedUserResponse.count).toBe(1);
+      }
+    }
+  });
+  it('returns 404 when unknown tour', async () => {
+    let createdUserId: number | undefined;
+    try {
+      const createdTourId = 999999;
+
+      const { createUserResponse, createdUserId: userId } = await createTestUser();
+
+      expect(createUserResponse.status).toBe(201);
+      expect(createUserResponse.body).toHaveProperty('success', true);
+
+      createdUserId = userId;
+      const token = createUserResponse.body.data.token;
+
+      expect(token).toEqual(expect.any(String));
+      expect(token.length).toBeGreaterThan(20);
+
+      const createReviewPayload = {
+        rating: 4,
+        comment: `Integration Test Comment ${Date.now()}`,
+      };
+
+      const createReviewResponse = await request(app)
+        .post(`/tours/${createdTourId}/reviews`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(createReviewPayload);
+
+      expect(createReviewResponse.status).toBe(404);
+      expect(createReviewResponse.body).toHaveProperty('success', false);
+      expect(createReviewResponse.body).toHaveProperty('message', 'Tour not found');
+    } finally {
+      if (createdUserId !== undefined) {
+        const deleteCreatedUserResponse = await prisma.user.deleteMany({
+          where: { id: createdUserId },
+        });
+        expect(deleteCreatedUserResponse.count).toBe(1);
+      }
+    }
+  });
+  it('returns 409 when duplicate review by same user on same tour', async () => {
+    let createdUserId: number | undefined;
+    let createdTourId: number | undefined;
+    let createdReviewId: number | undefined;
+    try {
+      const { createTourResponse, createdTourId: tourId } = await createTestTour();
+
+      expect(createTourResponse.status).toBe(201);
+      expect(createTourResponse.body).toHaveProperty('success', true);
+
+      createdTourId = tourId;
+
+      const { createUserResponse, createdUserId: userId } = await createTestUser();
+
+      expect(createUserResponse.status).toBe(201);
+      expect(createUserResponse.body).toHaveProperty('success', true);
+
+      createdUserId = userId;
+      const token = createUserResponse.body.data.token;
+
+      expect(token).toEqual(expect.any(String));
+      expect(token.length).toBeGreaterThan(20);
+
+      const { createReviewResponse } = await createTestReview(tourId, token);
+
+      expect(createReviewResponse.status).toBe(201);
+      expect(createReviewResponse.body).toHaveProperty('success', true);
+
+      createdReviewId = createReviewResponse.body.data.review.id;
+
+      const createSecondReviewPayload = {
+        rating: 4,
+        comment: `Integration Test Comment ${Date.now()}`,
+      };
+
+      const createSecondReviewResponse = await request(app)
+        .post(`/tours/${createdTourId}/reviews`)
+        .set('Authorization', `Bearer ${token}`)
+        .send(createSecondReviewPayload);
+
+      expect(createSecondReviewResponse.status).toBe(409);
+      expect(createSecondReviewResponse.body).toHaveProperty('success', false);
+      expect(createSecondReviewResponse.body).toHaveProperty(
+        'message',
+        'User must not have already reviewed this tour',
+      );
+    } finally {
+      if (createdReviewId !== undefined) {
+        const deleteCreatedReviewResponse = await prisma.review.deleteMany({
+          where: { id: createdReviewId },
+        });
+        expect(deleteCreatedReviewResponse.count).toBe(1);
+      }
+      if (createdTourId !== undefined) {
+        const deleteCreatedTourResponse = await request(app).delete(`/tours/${createdTourId}`);
+        expect(deleteCreatedTourResponse.status).toBe(200);
+      }
+      if (createdUserId !== undefined) {
+        const deleteCreatedUserResponse = await prisma.user.deleteMany({
+          where: { id: createdUserId },
+        });
+        expect(deleteCreatedUserResponse.count).toBe(1);
+      }
+    }
+  });
+});
