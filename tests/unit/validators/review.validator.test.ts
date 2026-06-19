@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { validateCreateReviewBody } from '../../../src/validators/review.validator';
+import {
+  validateCreateReviewBody,
+  validateGetReviewsQuery,
+} from '../../../src/validators/review.validator';
 
 describe('validateCreateReviewBody', () => {
   it('returns a CreateReviewDto for a valid body', () => {
@@ -75,5 +78,49 @@ describe('validateCreateReviewBody', () => {
         userId: 1,
       }),
     ).toThrow();
+  });
+});
+
+describe('validateGetReviewsQuery', () => {
+  it('returns provided pagination fields for valid pagination query params', () => {
+    expect(
+      validateGetReviewsQuery({
+        page: '2',
+        limit: '5',
+      }),
+    ).toStrictEqual({
+      page: 2,
+      limit: 5,
+    });
+  });
+  it('returns default pagination values when pagination query params are not provided', () => {
+    expect(validateGetReviewsQuery({})).toStrictEqual({
+      page: 1,
+      limit: 10,
+    });
+  });
+  it('throws when request params contain an unknown field', () => {
+    expect(() => validateGetReviewsQuery({ rating: '5' })).toThrow('Unrecognized key: "rating"');
+  });
+  it('throws when limit request param is higher than 100', () => {
+    expect(() => validateGetReviewsQuery({ limit: '150' })).toThrow(
+      'Limit parameter cannot exceed 100',
+    );
+  });
+  it('throws when page request param is not numeric', () => {
+    expect(() => validateGetReviewsQuery({ page: 'abc' })).toThrow(
+      'Page parameter should be of type number',
+    );
+  });
+  it('throws when page request param is not a positive number', () => {
+    expect(() => validateGetReviewsQuery({ page: '0' })).toThrow(
+      'Page parameter must be a positive value',
+    );
+  });
+  it('uses the default limit when only page is provided', () => {
+    expect(validateGetReviewsQuery({ page: '2' })).toStrictEqual({
+      page: 2,
+      limit: 10,
+    });
   });
 });

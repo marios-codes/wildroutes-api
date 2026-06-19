@@ -1,6 +1,5 @@
 import request from 'supertest';
 import app from '../../src/app';
-import { AppError } from '../../src/utils/app-error';
 
 export const createTestTour = async () => {
   const createTourPayload = {
@@ -22,9 +21,10 @@ export const createTestTour = async () => {
 };
 
 export const createTestUser = async () => {
+  const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const createUserPayload = {
-    name: `Integration Test User ${Date.now()}`,
-    email: `user-${Date.now()}@test.com`,
+    name: `Integration Test User ${uniqueSuffix}`,
+    email: `user-${uniqueSuffix}@test.com`,
     password: 'password',
   };
 

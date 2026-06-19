@@ -1,9 +1,25 @@
 import { Request, Response } from 'express';
-import { createReview } from '../services/review.service';
+import { createReview, getReviewsForTour } from '../services/review.service';
 import parseId from '../utils/parse-id';
-import { validateCreateReviewBody } from '../validators/review.validator';
+import { validateCreateReviewBody, validateGetReviewsQuery } from '../validators/review.validator';
 import type { CreateReviewData } from '../dtos/review.dto';
 import { AppError } from '../utils/app-error';
+
+export const getReviewsForTourHandler = async (req: Request, res: Response) => {
+  const tourId = parseId(req.params.tourId);
+  const query = validateGetReviewsQuery(req.query);
+
+  const { reviews, pagination } = await getReviewsForTour(tourId, query);
+
+  res.status(200).json({
+    success: true,
+    count: reviews.length,
+    pagination,
+    data: {
+      reviews,
+    },
+  });
+};
 
 export const createReviewHandler = async (req: Request, res: Response) => {
   const userId = req.user?.id;

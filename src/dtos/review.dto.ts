@@ -10,6 +10,11 @@ export type CreateReviewData = {
   tourId: number;
 };
 
+export type GetReviewsQueryDto = {
+  page: number;
+  limit: number;
+};
+
 export type ReviewResponseDto = {
   id: number;
   rating: number;

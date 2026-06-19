@@ -6,7 +6,7 @@ import {
   updateTourHandler,
   deleteTourHandler,
 } from '../controllers/tours.controller';
-import { createReviewHandler } from '../controllers/review.controller';
+import { createReviewHandler, getReviewsForTourHandler } from '../controllers/review.controller';
 import { authenticateUser } from '../middlewares/auth.middleware';
 
 const router: Router = express.Router();
@@ -17,6 +17,7 @@ router.get('/:id', getTourHandler);
 router.patch('/:id', updateTourHandler);
 router.delete('/:id', deleteTourHandler);
 
+router.get('/:tourId/reviews', getReviewsForTourHandler);
 router.post('/:tourId/reviews', authenticateUser, createReviewHandler);
 
 export default router;

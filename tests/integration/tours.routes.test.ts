@@ -253,6 +253,131 @@ describe('DELETE /tours/:id', () => {
   });
 });
 
+describe('GET /tours/:tourId/reviews', () => {
+  it('returns public paginated reviews for a tour', async () => {
+    let createdTourId: number | undefined;
+    const createdUserIds: number[] = [];
+    const createdReviewIds: number[] = [];
+
+    try {
+      const { createTourResponse, createdTourId: tourId } = await createTestTour();
+
+      expect(createTourResponse.status).toBe(201);
+      expect(createTourResponse.body).toHaveProperty('success', true);
+
+      createdTourId = tourId;
+
+      const firstUser = await createTestUser();
+      const secondUser = await createTestUser();
+
+      expect(firstUser.createUserResponse.status).toBe(201);
+      expect(secondUser.createUserResponse.status).toBe(201);
+
+      createdUserIds.push(firstUser.createdUserId, secondUser.createdUserId);
+
+      const firstToken = firstUser.createUserResponse.body.data.token;
+      const secondToken = secondUser.createUserResponse.body.data.token;
+
+      const firstReviewResponse = await createTestReview(tourId, firstToken);
+      const secondReviewResponse = await createTestReview(tourId, secondToken);
+
+      expect(firstReviewResponse.createReviewResponse.status).toBe(201);
+      expect(secondReviewResponse.createReviewResponse.status).toBe(201);
+
+      createdReviewIds.push(
+        firstReviewResponse.createReviewResponse.body.data.review.id,
+        secondReviewResponse.createReviewResponse.body.data.review.id,
+      );
+
+      const response = await request(app).get(`/tours/${tourId}/reviews?page=1&limit=1`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body.count).toBe(1);
+      expect(response.body.pagination).toStrictEqual({
+        page: 1,
+        limit: 1,
+        totalItems: 2,
+        totalPages: 2,
+      });
+      expect(response.body.data.reviews).toHaveLength(1);
+      expect(response.body.data.reviews[0]).toMatchObject({
+        id: createdReviewIds[0],
+        userId: firstUser.createdUserId,
+        tourId,
+        rating: firstReviewResponse.createReviewPayload.rating,
+        comment: firstReviewResponse.createReviewPayload.comment,
+      });
+    } finally {
+      if (createdReviewIds.length > 0) {
+        await prisma.review.deleteMany({
+          where: { id: { in: createdReviewIds } },
+        });
+      }
+      if (createdTourId !== undefined) {
+        const deleteCreatedTourResponse = await request(app).delete(`/tours/${createdTourId}`);
+        expect(deleteCreatedTourResponse.status).toBe(200);
+      }
+      if (createdUserIds.length > 0) {
+        await prisma.user.deleteMany({
+          where: { id: { in: createdUserIds } },
+        });
+      }
+    }
+  });
+  it('returns default pagination values when review query params are not provided', async () => {
+    let createdTourId: number | undefined;
+
+    try {
+      const { createTourResponse, createdTourId: tourId } = await createTestTour();
+
+      expect(createTourResponse.status).toBe(201);
+      expect(createTourResponse.body).toHaveProperty('success', true);
+
+      createdTourId = tourId;
+
+      const response = await request(app).get(`/tours/${tourId}/reviews`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body.count).toBe(0);
+      expect(response.body.pagination).toStrictEqual({
+        page: 1,
+        limit: 10,
+        totalItems: 0,
+        totalPages: 0,
+      });
+      expect(response.body.data.reviews).toStrictEqual([]);
+    } finally {
+      if (createdTourId !== undefined) {
+        const deleteCreatedTourResponse = await request(app).delete(`/tours/${createdTourId}`);
+        expect(deleteCreatedTourResponse.status).toBe(200);
+      }
+    }
+  });
+  it('returns 404 when getting reviews for an unknown tour', async () => {
+    const response = await request(app).get('/tours/999999/reviews');
+
+    expect(response.status).toBe(404);
+    expect(response.body).toHaveProperty('success', false);
+    expect(response.body).toHaveProperty('message', 'Tour not found');
+  });
+  it('returns 400 when review query params are invalid', async () => {
+    const response = await request(app).get('/tours/1/reviews?page=0');
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty('success', false);
+    expect(response.body).toHaveProperty('message', 'Page parameter must be a positive value');
+  });
+  it('returns 400 when review route tour id is invalid', async () => {
+    const response = await request(app).get('/tours/abc/reviews');
+
+    expect(response.status).toBe(400);
+    expect(response.body).toHaveProperty('success', false);
+    expect(response.body).toHaveProperty('message', 'ID must be a positive integer');
+  });
+});
+
 describe('POST /tours/:tourId/reviews', () => {
   it('creates a new tour review in the database', async () => {
     let createdTourId: number | undefined;
@@ -277,10 +402,7 @@ describe('POST /tours/:tourId/reviews', () => {
       expect(token).toEqual(expect.any(String));
       expect(token.length).toBeGreaterThan(20);
 
-      const {
-        createReviewPayload,
-        createReviewResponse,
-      } = await createTestReview(tourId, token);
+      const { createReviewPayload, createReviewResponse } = await createTestReview(tourId, token);
 
       expect(createReviewResponse.status).toBe(201);
       expect(createReviewResponse.body).toHaveProperty('success', true);
