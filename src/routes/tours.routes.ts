@@ -7,17 +7,16 @@ import {
   deleteTourHandler,
 } from '../controllers/tours.controller';
 import { createReviewHandler, getReviewsForTourHandler } from '../controllers/review.controller';
-import { authenticateUser } from '../middlewares/auth.middleware';
+import { authenticateUser, requireRole } from '../middlewares/auth.middleware';
 
 const router: Router = express.Router();
 
 router.get('/', getToursHandler);
-router.post('/', createTourHandler);
-router.get('/:id', getTourHandler);
-router.patch('/:id', updateTourHandler);
-router.delete('/:id', deleteTourHandler);
-
+router.post('/', authenticateUser, requireRole('ADMIN'), createTourHandler);
 router.get('/:tourId/reviews', getReviewsForTourHandler);
 router.post('/:tourId/reviews', authenticateUser, createReviewHandler);
+router.get('/:id', getTourHandler);
+router.patch('/:id', authenticateUser, requireRole('ADMIN'), updateTourHandler);
+router.delete('/:id', authenticateUser, requireRole('ADMIN'), deleteTourHandler);
 
 export default router;

@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from 'express';
 import { AppError } from '../utils/app-error';
 import { verifyAuthToken } from '../utils/jwt';
+import type { Role } from '../dtos/auth.dto';
 
 export const authenticateUser = (req: Request, _res: Response, next: NextFunction) => {
   const authorizationHeader = req.headers.authorization;
@@ -28,4 +29,16 @@ export const authenticateUser = (req: Request, _res: Response, next: NextFunctio
   req.user = { id, role };
 
   next();
+};
+
+export const requireRole = (...allowedRoles: Role[]) => {
+  return (req: Request, _res: Response, next: NextFunction) => {
+    const role = req.user?.role;
+
+    if (!role || !allowedRoles.includes(role)) {
+      throw new AppError('Authorization required', 403);
+    }
+
+    next();
+  };
 };
