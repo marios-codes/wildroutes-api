@@ -1,51 +1,73 @@
-import request from 'supertest';
 import bcrypt from 'bcrypt';
-import app from '../../src/app';
 import { signAuthToken } from '../../src/utils/jwt';
 import prisma from '../../src/config/prisma';
 
-export const createTestTour = async (adminToken: string) => {
+const BCRYPT_SALT_ROUNDS = 10;
+
+export const createTestTour = async () => {
   const createTourPayload = {
     name: `Integration Test Tour ${Date.now()}`,
     duration: 2,
     difficulty: 'EASY',
     rating: 4.4,
     numberOfParticipants: 5,
-  };
+  } as const;
 
-  const createTourResponse = await request(app)
-    .post('/tours')
-    .set('Authorization', `Bearer ${adminToken}`)
-    .send(createTourPayload);
+  const createdTour = await prisma.tour.create({
+    data: createTourPayload,
+    select: {
+      id: true,
+      name: true,
+      duration: true,
+      difficulty: true,
+      rating: true,
+      numberOfParticipants: true,
+    },
+  });
 
   return {
     createTourPayload,
-    createTourResponse,
-    createdTour: createTourResponse.body.data?.tour,
-    createdTourId: createTourResponse.body.data?.tour?.id,
+    createdTour,
+    createdTourId: createdTour.id,
   };
 };
 
 export const createTestUser = async () => {
+  const password = 'password';
+  const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
   const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const createUserPayload = {
     name: `Integration Test User ${uniqueSuffix}`,
     email: `user-${uniqueSuffix}@test.com`,
-    password: 'password',
+    password,
   };
 
-  const createUserResponse = await request(app).post('/auth/register').send(createUserPayload);
+  const createdUser = await prisma.user.create({
+    data: {
+      name: createUserPayload.name,
+      email: createUserPayload.email,
+      passwordHash,
+      role: 'USER',
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+    },
+  });
+
+  const token = signAuthToken(createdUser.id, createdUser.role);
 
   return {
     createUserPayload,
-    createUserResponse,
-    createdUser: createUserResponse.body.data.user,
-    createdUserId: createUserResponse.body.data.user.id,
+    createdUser,
+    createdUserId: createdUser.id,
+    token,
   };
 };
 
 export const createTestAdminUser = async () => {
-  const BCRYPT_SALT_ROUNDS = 10;
   const passwordHash = await bcrypt.hash('12345678', BCRYPT_SALT_ROUNDS);
   const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
@@ -73,19 +95,32 @@ export const createTestAdminUser = async () => {
   };
 };
 
-export const createTestReview = async (tourId: number, token: string) => {
+export const createTestReview = async (tourId: number, userId: number) => {
   const createReviewPayload = {
     rating: 4,
     comment: `Integration Test Comment ${Date.now()}`,
   };
 
-  const createReviewResponse = await request(app)
-    .post(`/tours/${tourId}/reviews`)
-    .set('Authorization', `Bearer ${token}`)
-    .send(createReviewPayload);
+  const createdReview = await prisma.review.create({
+    data: {
+      ...createReviewPayload,
+      tourId,
+      userId,
+    },
+    select: {
+      id: true,
+      rating: true,
+      comment: true,
+      userId: true,
+      tourId: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
 
   return {
     createReviewPayload,
-    createReviewResponse,
+    createdReview,
+    createdReviewId: createdReview.id,
   };
 };

@@ -3,9 +3,17 @@ import {
   countReviewsByTour,
   findReviewByUserAndTour,
   findReviewsByTour,
+  findReviewById,
+  updateReviewById,
 } from '../repositories/review.repository';
 import { findTourById } from '../repositories/tours.repository';
-import type { CreateReviewData, GetReviewsQueryDto, ReviewResponseDto } from '../dtos/review.dto';
+import type {
+  CreateReviewData,
+  GetReviewsQueryDto,
+  ReviewResponseDto,
+  UpdateReviewDto,
+  UpdateReviewData,
+} from '../dtos/review.dto';
 import { AppError } from '../utils/app-error';
 
 export const getReviewsForTour = async (tourId: number, queryData: GetReviewsQueryDto) => {
@@ -49,4 +57,32 @@ export const createReview = async (reviewData: CreateReviewData): Promise<Review
     throw new AppError('User must not have already reviewed this tour', 409);
   }
   return createReviewRepository(reviewData);
+};
+
+export const updateReview = async (reviewData: UpdateReviewData): Promise<ReviewResponseDto> => {
+  const review = await findReviewById(reviewData.reviewId);
+
+  if (review === null) {
+    throw new AppError('Review not found', 404);
+  }
+
+  if (review.tourId !== reviewData.tourId) {
+    throw new AppError('Review belongs to different tour', 404);
+  }
+
+  if (review.userId !== reviewData.userId) {
+    throw new AppError('Review belongs to different user', 403);
+  }
+
+  const updateReviewDto: UpdateReviewDto = {};
+
+  if (reviewData.rating !== undefined) {
+    updateReviewDto.rating = reviewData.rating;
+  }
+
+  if (reviewData.comment !== undefined) {
+    updateReviewDto.comment = reviewData.comment;
+  }
+
+  return updateReviewById(review.id, updateReviewDto);
 };

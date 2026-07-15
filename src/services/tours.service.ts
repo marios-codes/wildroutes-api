@@ -50,7 +50,29 @@ export const updateTour = async (tourId: number, tourData: UpdateTourDto) => {
     throw new AppError('Tour not found', 404);
   }
 
-  return updateTourById(tourId, tourData);
+  const updateTourDto: UpdateTourDto = {};
+
+  if (tourData.name !== undefined) {
+    updateTourDto.name = tourData.name;
+  }
+
+  if (tourData.duration !== undefined) {
+    updateTourDto.duration = tourData.duration;
+  }
+
+  if (tourData.difficulty !== undefined) {
+    updateTourDto.difficulty = tourData.difficulty;
+  }
+
+  if (tourData.rating !== undefined) {
+    updateTourDto.rating = tourData.rating;
+  }
+
+  if (tourData.numberOfParticipants !== undefined) {
+    updateTourDto.numberOfParticipants = tourData.numberOfParticipants;
+  }
+
+  return updateTourById(tourId, updateTourDto);
 };
 
 export const deleteTour = async (tourId: number) => {

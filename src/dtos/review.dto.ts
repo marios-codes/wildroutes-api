@@ -3,9 +3,7 @@ export type CreateReviewDto = {
   comment: string;
 };
 
-export type CreateReviewData = {
-  rating: number;
-  comment: string;
+export type CreateReviewData = CreateReviewDto & {
   userId: number;
   tourId: number;
 };
@@ -23,4 +21,15 @@ export type ReviewResponseDto = {
   tourId: number;
   createdAt: Date;
   updatedAt: Date;
+};
+
+export type UpdateReviewDto = {
+  rating?: number;
+  comment?: string;
+};
+
+export type UpdateReviewData = UpdateReviewDto & {
+  userId: number;
+  tourId: number;
+  reviewId: number;
 };

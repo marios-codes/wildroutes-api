@@ -1,5 +1,5 @@
 import prisma from '../config/prisma';
-import type { CreateReviewData, ReviewResponseDto } from '../dtos/review.dto';
+import type { CreateReviewData, ReviewResponseDto, UpdateReviewDto } from '../dtos/review.dto';
 
 type FindReviewsByTourOptions = {
   tourId: number;
@@ -32,6 +32,13 @@ export const findReviewByUserAndTour = async (
   });
 };
 
+export const findReviewById = async (reviewId: number): Promise<ReviewResponseDto | null> => {
+  return prisma.review.findUnique({
+    where: { id: reviewId },
+    select: reviewSelect,
+  });
+};
+
 export const findReviewsByTour = async ({
   tourId,
   skip,
@@ -52,6 +59,17 @@ export const countReviewsByTour = async (tourId: number): Promise<number> => {
 
 export const createReview = async (reviewData: CreateReviewData): Promise<ReviewResponseDto> => {
   return prisma.review.create({
+    data: reviewData,
+    select: reviewSelect,
+  });
+};
+
+export const updateReviewById = async (
+  reviewId: number,
+  reviewData: UpdateReviewDto,
+): Promise<ReviewResponseDto> => {
+  return prisma.review.update({
+    where: { id: reviewId },
     data: reviewData,
     select: reviewSelect,
   });

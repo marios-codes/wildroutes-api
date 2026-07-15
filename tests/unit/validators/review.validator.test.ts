@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   validateCreateReviewBody,
   validateGetReviewsQuery,
+  validateUpdateReviewBody,
 } from '../../../src/validators/review.validator';
 
 describe('validateCreateReviewBody', () => {
@@ -78,6 +79,54 @@ describe('validateCreateReviewBody', () => {
         userId: 1,
       }),
     ).toThrow();
+  });
+});
+
+describe('validateUpdateReviewBody', () => {
+  it('returns rating when only rating is provided', () => {
+    expect(
+      validateUpdateReviewBody({
+        rating: 4,
+      }),
+    ).toStrictEqual({
+      rating: 4,
+    });
+  });
+  it('returns comment when only comment is provided', () => {
+    expect(
+      validateUpdateReviewBody({
+        comment: 'Updated comment',
+      }),
+    ).toStrictEqual({
+      comment: 'Updated comment',
+    });
+  });
+  it('returns rating and comment when both are provided', () => {
+    expect(
+      validateUpdateReviewBody({
+        rating: 4,
+        comment: 'Updated comment',
+      }),
+    ).toStrictEqual({
+      rating: 4,
+      comment: 'Updated comment',
+    });
+  });
+  it('throws when request body is empty', () => {
+    expect(() => validateUpdateReviewBody({})).toThrow(
+      'You must provide at least one review field',
+    );
+  });
+  it('throws when invalid rating', () => {
+    expect(() => validateUpdateReviewBody({ rating: 8 })).toThrow('Review rating cannot exceed 5');
+  });
+  it('throws when empty comment', () => {
+    expect(() => validateUpdateReviewBody({ comment: '' })).toThrow(
+      'Review comment must be a non-empty string',
+    );
+  });
+  it('throws when request body contains an unknown field', () => {
+    expect(() => validateUpdateReviewBody({ userId: 1 })).toThrow('Unrecognized key: "userId"');
   });
 });
 

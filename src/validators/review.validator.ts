@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CreateReviewDto, GetReviewsQueryDto } from '../dtos/review.dto';
+import { CreateReviewDto, GetReviewsQueryDto, UpdateReviewDto } from '../dtos/review.dto';
 import { AppError } from '../utils/app-error';
 
 const createReviewSchema = z
@@ -12,6 +12,10 @@ const createReviewSchema = z
     comment: z.string().trim().min(1, 'Review comment must be a non-empty string'),
   })
   .strict();
+
+const updateReviewSchema = createReviewSchema
+  .partial()
+  .refine((data) => Object.keys(data).length > 0, 'You must provide at least one review field');
 
 const getReviewsQuerySchema = z
   .object({
@@ -31,6 +35,17 @@ const getReviewsQuerySchema = z
 
 export const validateCreateReviewBody = (reqBody: unknown): CreateReviewDto => {
   const validationResult = createReviewSchema.safeParse(reqBody);
+
+  if (!validationResult.success) {
+    const message = validationResult.error.issues[0]?.message ?? 'Invalid review data';
+    throw new AppError(message, 400);
+  }
+
+  return validationResult.data;
+};
+
+export const validateUpdateReviewBody = (reqBody: unknown): UpdateReviewDto => {
+  const validationResult = updateReviewSchema.safeParse(reqBody);
 
   if (!validationResult.success) {
     const message = validationResult.error.issues[0]?.message ?? 'Invalid review data';

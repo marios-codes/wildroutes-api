@@ -9,7 +9,13 @@ describe('POST /auth/register', () => {
   it('returns 201 and safe user data', async () => {
     let createdUserId: number | undefined;
     try {
-      const { createUserPayload, createUserResponse } = await createTestUser();
+      const createUserPayload = {
+        name: `Integration Test User ${Date.now()}`,
+        email: `register-success-${Date.now()}@test.com`,
+        password: 'password',
+      };
+
+      const createUserResponse = await request(app).post('/auth/register').send(createUserPayload);
 
       expect(createUserResponse.status).toBe(201);
 
@@ -39,25 +45,14 @@ describe('POST /auth/register', () => {
   it('returns 409 when email is already in use', async () => {
     let createdFirstUserId: number | undefined;
     try {
-      const duplicateEmail = `email-exists-${Date.now()}@test.com`;
-      const createFirstUserPayload = {
-        name: `Integration Test User ${Date.now()}`,
-        email: duplicateEmail,
-        password: 'password',
-      };
+      const { createdUserId, createdUser } = await createTestUser();
+      createdFirstUserId = createdUserId;
 
       const createSecondUserPayload = {
         name: `Integration Test User ${Date.now()}`,
-        email: duplicateEmail,
+        email: createdUser.email,
         password: 'password2',
       };
-
-      const createFirstUserResponse = await request(app)
-        .post('/auth/register')
-        .send(createFirstUserPayload);
-
-      expect(createFirstUserResponse.status).toBe(201);
-      createdFirstUserId = createFirstUserResponse.body.data.user.id;
 
       const createSecondUserResponse = await request(app)
         .post('/auth/register')
@@ -94,18 +89,8 @@ describe('POST /auth/login', () => {
   it('returns 200 and safe user data', async () => {
     let createdUserId: number | undefined;
     try {
-      const createUserPayload = {
-        name: `Integration Test User ${Date.now()}`,
-        email: `login-success-${Date.now()}@test.com`,
-        password: 'password',
-      };
-
-      const createdResponse = await request(app).post('/auth/register').send(createUserPayload);
-
-      expect(createdResponse.status).toBe(201);
-
-      const createdUser = createdResponse.body.data.user;
-      createdUserId = createdUser.id;
+      const { createUserPayload, createdUser, createdUserId: userId } = await createTestUser();
+      createdUserId = userId;
 
       const loginUserPayload = {
         email: createdUser.email,
@@ -136,18 +121,8 @@ describe('POST /auth/login', () => {
   it('returns 401 when wrong password is provided', async () => {
     let createdUserId: number | undefined;
     try {
-      const createUserPayload = {
-        name: `Integration Test User ${Date.now()}`,
-        email: `wrong-password-${Date.now()}@test.com`,
-        password: 'password',
-      };
-
-      const createdResponse = await request(app).post('/auth/register').send(createUserPayload);
-
-      expect(createdResponse.status).toBe(201);
-
-      const createdUser = createdResponse.body.data.user;
-      createdUserId = createdUser.id;
+      const { createdUser, createdUserId: userId } = await createTestUser();
+      createdUserId = userId;
 
       const loginUserPayload = {
         email: createdUser.email,
@@ -202,14 +177,8 @@ describe('GET /auth/me', () => {
     let createdUserId: number | undefined;
 
     try {
-      const { createUserResponse } = await createTestUser();
-
-      expect(createUserResponse.status).toBe(201);
-
-      const createdUser = createUserResponse.body.data.user;
-      const token = createUserResponse.body.data.token;
-
-      createdUserId = createdUser.id;
+      const { createdUser, createdUserId: userId, token } = await createTestUser();
+      createdUserId = userId;
 
       const response = await request(app).get('/auth/me').set('Authorization', `Bearer ${token}`);
 
