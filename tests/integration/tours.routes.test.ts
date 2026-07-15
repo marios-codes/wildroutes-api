@@ -443,8 +443,8 @@ describe('DELETE /tours/:id', () => {
       const deleteCreatedTourResponse = await request(app)
         .delete(`/tours/${createdTourId}`)
         .set('Authorization', `Bearer ${adminToken}`);
-      expect(deleteCreatedTourResponse.status).toBe(200);
-      expect(deleteCreatedTourResponse.body).toHaveProperty('success', true);
+      expect(deleteCreatedTourResponse.status).toBe(204);
+      expect(deleteCreatedTourResponse.text).toBe('');
 
       createdTourId = undefined;
 

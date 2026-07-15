@@ -66,7 +66,5 @@ export const deleteTourHandler = async (req: Request, res: Response) => {
 
   await deleteTour(tourId);
 
-  res.status(200).json({
-    success: true,
-  });
+  res.status(204).send();
 };
