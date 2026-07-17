@@ -8,6 +8,7 @@ import {
 } from '../controllers/tours.controller';
 import {
   createReviewHandler,
+  deleteReviewHandler,
   getReviewsForTourHandler,
   updateReviewHandler,
 } from '../controllers/review.controller';
@@ -18,6 +19,7 @@ const router: Router = express.Router();
 router.get('/', getToursHandler);
 router.post('/', authenticateUser, requireRole('ADMIN'), createTourHandler);
 router.patch('/:tourId/reviews/:reviewId', authenticateUser, updateReviewHandler);
+router.delete('/:tourId/reviews/:reviewId', authenticateUser, deleteReviewHandler);
 router.get('/:tourId/reviews', getReviewsForTourHandler);
 router.post('/:tourId/reviews', authenticateUser, createReviewHandler);
 router.get('/:id', getTourHandler);

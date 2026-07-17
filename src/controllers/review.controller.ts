@@ -1,12 +1,17 @@
 import { Request, Response } from 'express';
-import { createReview, getReviewsForTour, updateReview } from '../services/review.service';
+import {
+  createReview,
+  deleteReview,
+  getReviewsForTour,
+  updateReview,
+} from '../services/review.service';
 import parseId from '../utils/parse-id';
 import {
   validateCreateReviewBody,
   validateGetReviewsQuery,
   validateUpdateReviewBody,
 } from '../validators/review.validator';
-import type { CreateReviewData, UpdateReviewData } from '../dtos/review.dto';
+import type { CreateReviewData, DeleteReviewData, UpdateReviewData } from '../dtos/review.dto';
 import { AppError } from '../utils/app-error';
 
 export const getReviewsForTourHandler = async (req: Request, res: Response) => {
@@ -64,4 +69,19 @@ export const updateReviewHandler = async (req: Request, res: Response) => {
       review,
     },
   });
+};
+
+export const deleteReviewHandler = async (req: Request, res: Response) => {
+  const userId = req.user?.id;
+  if (userId === undefined) {
+    throw new AppError('User must be authenticated', 401);
+  }
+  const tourId = parseId(req.params.tourId);
+  const reviewId = parseId(req.params.reviewId);
+
+  const deleteReviewData: DeleteReviewData = { reviewId, tourId, userId };
+
+  await deleteReview(deleteReviewData);
+
+  res.status(204).send();
 };

@@ -33,3 +33,9 @@ export type UpdateReviewData = UpdateReviewDto & {
   tourId: number;
   reviewId: number;
 };
+
+export type DeleteReviewData = {
+  reviewId: number;
+  tourId: number;
+  userId: number;
+};

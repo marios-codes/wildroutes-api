@@ -5,6 +5,7 @@ import {
   findReviewsByTour,
   findReviewById,
   updateReviewById,
+  deleteReviewById,
 } from '../repositories/review.repository';
 import { findTourById } from '../repositories/tours.repository';
 import type {
@@ -13,6 +14,7 @@ import type {
   ReviewResponseDto,
   UpdateReviewDto,
   UpdateReviewData,
+  DeleteReviewData,
 } from '../dtos/review.dto';
 import { AppError } from '../utils/app-error';
 
@@ -85,4 +87,26 @@ export const updateReview = async (reviewData: UpdateReviewData): Promise<Review
   }
 
   return updateReviewById(review.id, updateReviewDto);
+};
+
+export const deleteReview = async (reviewData: DeleteReviewData): Promise<void> => {
+  const review = await findReviewById(reviewData.reviewId);
+
+  if (review === null) {
+    throw new AppError('Review not found', 404);
+  }
+
+  if (review.tourId !== reviewData.tourId) {
+    throw new AppError('Review belongs to different tour', 404);
+  }
+
+  if (review.userId !== reviewData.userId) {
+    throw new AppError('Review belongs to different user', 403);
+  }
+
+  const wasReviewDeleted = await deleteReviewById(review.id);
+
+  if (!wasReviewDeleted) {
+    throw new AppError('Review not found', 404);
+  }
 };

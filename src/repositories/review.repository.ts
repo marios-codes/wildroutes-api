@@ -74,3 +74,11 @@ export const updateReviewById = async (
     select: reviewSelect,
   });
 };
+
+export const deleteReviewById = async (reviewId: number): Promise<boolean> => {
+  const { count } = await prisma.review.deleteMany({
+    where: { id: reviewId },
+  });
+
+  return count === 1;
+};
