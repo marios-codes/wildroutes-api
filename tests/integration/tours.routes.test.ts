@@ -1299,8 +1299,7 @@ describe('DELETE /tours/:tourId/reviews/:reviewId', () => {
 
       const deleteReviewResponse = await request(app)
         .delete(`/tours/${tourId}/reviews/${createdReviewId}`)
-        .set('Authorization', `Bearer ${token}`)
-        .send();
+        .set('Authorization', `Bearer ${token}`);
 
       expect(deleteReviewResponse.status).toBe(204);
       expect(deleteReviewResponse.text).toBe('');
@@ -1391,7 +1390,7 @@ describe('DELETE /tours/:tourId/reviews/:reviewId', () => {
       }
     }
   });
-  it('returns 403 when a logged-in user deletes another user review', async () => {
+  it("returns 403 when a logged-in user deletes another user's review", async () => {
     let reviewOwnerId: number | undefined;
     let otherUserId: number | undefined;
     let createdTourId: number | undefined;
