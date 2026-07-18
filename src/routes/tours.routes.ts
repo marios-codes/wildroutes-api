@@ -12,6 +12,7 @@ import {
   getReviewsForTourHandler,
   updateReviewHandler,
 } from '../controllers/review.controller';
+import { createBookingHandler } from '../controllers/booking.controller';
 import { authenticateUser, requireRole } from '../middlewares/auth.middleware';
 
 const router: Router = express.Router();
@@ -22,6 +23,7 @@ router.patch('/:tourId/reviews/:reviewId', authenticateUser, updateReviewHandler
 router.delete('/:tourId/reviews/:reviewId', authenticateUser, deleteReviewHandler);
 router.get('/:tourId/reviews', getReviewsForTourHandler);
 router.post('/:tourId/reviews', authenticateUser, createReviewHandler);
+router.post('/:tourId/bookings', authenticateUser, createBookingHandler);
 router.get('/:id', getTourHandler);
 router.patch('/:id', authenticateUser, requireRole('ADMIN'), updateTourHandler);
 router.delete('/:id', authenticateUser, requireRole('ADMIN'), deleteTourHandler);
