@@ -1,7 +1,6 @@
 import {
   createReview as createReviewRepository,
   countReviewsByTour,
-  findReviewByUserAndTour,
   findReviewsByTour,
   findReviewById,
   updateReviewById,
@@ -17,6 +16,7 @@ import type {
   DeleteReviewData,
 } from '../dtos/review.dto';
 import { AppError } from '../utils/app-error';
+import { Prisma } from '@prisma/client';
 
 export const getReviewsForTour = async (tourId: number, queryData: GetReviewsQueryDto) => {
   const tour = await findTourById(tourId);
@@ -51,14 +51,15 @@ export const createReview = async (reviewData: CreateReviewData): Promise<Review
     throw new AppError('Tour not found', 404);
   }
 
-  const currentUserReviewOnTour = await findReviewByUserAndTour(
-    reviewData.userId,
-    reviewData.tourId,
-  );
-  if (currentUserReviewOnTour !== null) {
-    throw new AppError('User must not have already reviewed this tour', 409);
+  try {
+    return await createReviewRepository(reviewData);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      throw new AppError('User must not have already reviewed this tour', 409);
+    }
+
+    throw error;
   }
-  return createReviewRepository(reviewData);
 };
 
 export const updateReview = async (reviewData: UpdateReviewData): Promise<ReviewResponseDto> => {

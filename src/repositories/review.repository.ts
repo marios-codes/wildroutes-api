@@ -17,21 +17,6 @@ const reviewSelect = {
   updatedAt: true,
 };
 
-export const findReviewByUserAndTour = async (
-  userId: number,
-  tourId: number,
-): Promise<ReviewResponseDto | null> => {
-  return prisma.review.findUnique({
-    where: {
-      userId_tourId: {
-        userId,
-        tourId,
-      },
-    },
-    select: reviewSelect,
-  });
-};
-
 export const findReviewById = async (reviewId: number): Promise<ReviewResponseDto | null> => {
   return prisma.review.findUnique({
     where: { id: reviewId },
