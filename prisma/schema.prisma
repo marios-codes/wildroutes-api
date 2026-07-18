@@ -20,6 +20,7 @@ model Tour {
     rating Float
     numberOfParticipants Int
     reviews Review[]
+    bookings Booking[]
 }
 
 enum Role {
@@ -34,6 +35,7 @@ model User {
     passwordHash String
     role Role @default(USER)
     reviews Review[]
+    bookings Booking[]
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 }
@@ -47,10 +49,21 @@ model Review {
     createdAt DateTime @default(now())
     updatedAt DateTime @updatedAt
 
-    user User @relation(fields: [userId], references: [id])
-    tour Tour @relation(fields: [tourId], references: [id])
+    user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+    tour Tour @relation(fields: [tourId], references: [id], onDelete: Restrict)
 
     @@unique([userId, tourId])
+}
 
-    
+model Booking {
+    id Int @id @default(autoincrement())
+    userId Int
+    tourId Int
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+
+    user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+    tour Tour @relation(fields: [tourId], references: [id], onDelete: Restrict)
+
+    @@unique([userId, tourId])
 }
