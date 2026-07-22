@@ -10,3 +10,8 @@ export type BookingResponseDto = {
   createdAt: Date;
   updatedAt: Date;
 };
+
+export type GetBookingsQueryDto = {
+  page: number;
+  limit: number;
+};

@@ -5,6 +5,7 @@ import prisma from '../../src/config/prisma';
 import { TOUR_DIFFICULTIES } from '../../src/dtos/tours.dto';
 import {
   createTestAdminUser,
+  createTestBooking,
   createTestReview,
   createTestTour,
   createTestUser,
@@ -963,6 +964,158 @@ describe('POST /tours/:tourId/bookings', () => {
           where: { id: createdUserId },
         });
         expect(deletedUser.count).toBe(1);
+      }
+    }
+  });
+});
+
+describe('GET /bookings/me', () => {
+  it('returns only the authenticated user\'s paginated bookings', async () => {
+    const createdBookingIds: number[] = [];
+    const createdTourIds: number[] = [];
+    const createdUserIds: number[] = [];
+
+    try {
+      const firstTour = await createTestTour();
+      const secondTour = await createTestTour();
+      createdTourIds.push(firstTour.createdTourId, secondTour.createdTourId);
+
+      const firstUser = await createTestUser();
+      const secondUser = await createTestUser();
+      createdUserIds.push(firstUser.createdUserId, secondUser.createdUserId);
+
+      const firstUserFirstBooking = await createTestBooking(
+        firstTour.createdTourId,
+        firstUser.createdUserId,
+      );
+      const secondUserBooking = await createTestBooking(
+        firstTour.createdTourId,
+        secondUser.createdUserId,
+      );
+      const firstUserSecondBooking = await createTestBooking(
+        secondTour.createdTourId,
+        firstUser.createdUserId,
+      );
+      createdBookingIds.push(
+        firstUserFirstBooking.createdBookingId,
+        secondUserBooking.createdBookingId,
+        firstUserSecondBooking.createdBookingId,
+      );
+
+      const response = await request(app)
+        .get('/bookings/me?page=2&limit=1')
+        .set('Authorization', `Bearer ${firstUser.token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body.count).toBe(1);
+      expect(response.body.pagination).toStrictEqual({
+        page: 2,
+        limit: 1,
+        totalItems: 2,
+        totalPages: 2,
+      });
+      expect(response.body.data.bookings).toStrictEqual([
+        expect.objectContaining({
+          id: firstUserSecondBooking.createdBookingId,
+          userId: firstUser.createdUserId,
+          tourId: secondTour.createdTourId,
+        }),
+      ]);
+    } finally {
+      if (createdBookingIds.length > 0) {
+        await prisma.booking.deleteMany({
+          where: { id: { in: createdBookingIds } },
+        });
+      }
+      if (createdTourIds.length > 0) {
+        await prisma.tour.deleteMany({
+          where: { id: { in: createdTourIds } },
+        });
+      }
+      if (createdUserIds.length > 0) {
+        await prisma.user.deleteMany({
+          where: { id: { in: createdUserIds } },
+        });
+      }
+    }
+  });
+
+  it('uses default pagination values when query parameters are omitted', async () => {
+    let createdBookingId: number | undefined;
+    let createdTourId: number | undefined;
+    let createdUserId: number | undefined;
+
+    try {
+      const { createdTourId: tourId } = await createTestTour();
+      createdTourId = tourId;
+
+      const { createdUserId: userId, token } = await createTestUser();
+      createdUserId = userId;
+
+      const booking = await createTestBooking(tourId, userId);
+      createdBookingId = booking.createdBookingId;
+
+      const response = await request(app)
+        .get('/bookings/me')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body.count).toBe(1);
+      expect(response.body.pagination).toStrictEqual({
+        page: 1,
+        limit: 10,
+        totalItems: 1,
+        totalPages: 1,
+      });
+      expect(response.body.data.bookings).toHaveLength(1);
+    } finally {
+      if (createdBookingId !== undefined) {
+        await prisma.booking.deleteMany({
+          where: { id: createdBookingId },
+        });
+      }
+      if (createdTourId !== undefined) {
+        await prisma.tour.deleteMany({
+          where: { id: createdTourId },
+        });
+      }
+      if (createdUserId !== undefined) {
+        await prisma.user.deleteMany({
+          where: { id: createdUserId },
+        });
+      }
+    }
+  });
+
+  it('returns 401 when the request is unauthenticated', async () => {
+    const response = await request(app).get('/bookings/me');
+
+    expect(response.status).toBe(401);
+    expect(response.body).toHaveProperty('success', false);
+    expect(response.body).toHaveProperty('message', 'Authentication required');
+  });
+
+  it('returns 400 when the pagination query is invalid', async () => {
+    let createdUserId: number | undefined;
+
+    try {
+      const { createdUserId: userId, token } = await createTestUser();
+      createdUserId = userId;
+
+      const response = await request(app)
+        .get('/bookings/me?page=0')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body).toHaveProperty('message', 'Page parameter must be a positive value');
+    } finally {
+      if (createdUserId !== undefined) {
+        await prisma.user.deleteMany({
+          where: { id: createdUserId },
+        });
       }
     }
   });

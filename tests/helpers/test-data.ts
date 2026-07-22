@@ -124,3 +124,21 @@ export const createTestReview = async (tourId: number, userId: number) => {
     createdReviewId: createdReview.id,
   };
 };
+
+export const createTestBooking = async (tourId: number, userId: number) => {
+  const createdBooking = await prisma.booking.create({
+    data: { tourId, userId },
+    select: {
+      id: true,
+      userId: true,
+      tourId: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  });
+
+  return {
+    createdBooking,
+    createdBookingId: createdBooking.id,
+  };
+};

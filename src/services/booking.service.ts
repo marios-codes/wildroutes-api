@@ -1,6 +1,14 @@
-import type { BookingResponseDto, CreateBookingData } from '../dtos/booking.dto';
+import type {
+  BookingResponseDto,
+  CreateBookingData,
+  GetBookingsQueryDto,
+} from '../dtos/booking.dto';
 import { findTourById } from '../repositories/tours.repository';
-import { createBooking as createBookingRepository } from '../repositories/booking.repository';
+import {
+  countBookingsByUser,
+  createBooking as createBookingRepository,
+  findBookingsByUser,
+} from '../repositories/booking.repository';
 import { AppError } from '../utils/app-error';
 import { Prisma } from '@prisma/client';
 
@@ -22,4 +30,24 @@ export const createBooking = async (
 
     throw error;
   }
+};
+
+export const getBookingsForUser = async (userId: number, queryData: GetBookingsQueryDto) => {
+  const { page, limit } = queryData;
+  const skip = (page - 1) * limit;
+  const take = limit;
+
+  const bookings = await findBookingsByUser({ userId, skip, take });
+  const totalItems = await countBookingsByUser(userId);
+  const totalPages = Math.ceil(totalItems / limit);
+
+  return {
+    bookings,
+    pagination: {
+      page,
+      limit,
+      totalItems,
+      totalPages,
+    },
+  };
 };
