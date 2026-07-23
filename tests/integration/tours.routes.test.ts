@@ -1121,6 +1121,127 @@ describe('GET /bookings/me', () => {
   });
 });
 
+describe('GET /bookings', () => {
+  it('returns all bookings to an authenticated admin with pagination', async () => {
+    const createdBookingIds: number[] = [];
+    const createdUserIds: number[] = [];
+    let createdAdminId: number | undefined;
+    let createdTourId: number | undefined;
+
+    try {
+      const { createdTourId: tourId } = await createTestTour();
+      createdTourId = tourId;
+
+      const firstUser = await createTestUser();
+      const secondUser = await createTestUser();
+      createdUserIds.push(firstUser.createdUserId, secondUser.createdUserId);
+
+      const firstBooking = await createTestBooking(tourId, firstUser.createdUserId);
+      const secondBooking = await createTestBooking(tourId, secondUser.createdUserId);
+      createdBookingIds.push(firstBooking.createdBookingId, secondBooking.createdBookingId);
+
+      const { createdAdminId: adminId, adminToken } = await createTestAdminUser();
+      createdAdminId = adminId;
+
+      const response = await request(app)
+        .get('/bookings?page=2&limit=1')
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body.count).toBe(1);
+      expect(response.body.pagination).toStrictEqual({
+        page: 2,
+        limit: 1,
+        totalItems: 2,
+        totalPages: 2,
+      });
+      expect(response.body.data.bookings).toStrictEqual([
+        expect.objectContaining({
+          id: secondBooking.createdBookingId,
+          userId: secondUser.createdUserId,
+          tourId,
+        }),
+      ]);
+    } finally {
+      if (createdBookingIds.length > 0) {
+        await prisma.booking.deleteMany({
+          where: { id: { in: createdBookingIds } },
+        });
+      }
+      if (createdTourId !== undefined) {
+        await prisma.tour.deleteMany({
+          where: { id: createdTourId },
+        });
+      }
+      if (createdUserIds.length > 0) {
+        await prisma.user.deleteMany({
+          where: { id: { in: createdUserIds } },
+        });
+      }
+      if (createdAdminId !== undefined) {
+        await prisma.user.deleteMany({
+          where: { id: createdAdminId },
+        });
+      }
+    }
+  });
+
+  it('returns 401 when the request is unauthenticated', async () => {
+    const response = await request(app).get('/bookings');
+
+    expect(response.status).toBe(401);
+    expect(response.body).toHaveProperty('success', false);
+    expect(response.body).toHaveProperty('message', 'Authentication required');
+  });
+
+  it('returns 403 when a normal user requests all bookings', async () => {
+    let createdUserId: number | undefined;
+
+    try {
+      const { createdUserId: userId, token } = await createTestUser();
+      createdUserId = userId;
+
+      const response = await request(app)
+        .get('/bookings')
+        .set('Authorization', `Bearer ${token}`);
+
+      expect(response.status).toBe(403);
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body).toHaveProperty('message', 'Authorization required');
+    } finally {
+      if (createdUserId !== undefined) {
+        await prisma.user.deleteMany({
+          where: { id: createdUserId },
+        });
+      }
+    }
+  });
+
+  it('returns 400 when the pagination query is invalid', async () => {
+    let createdAdminId: number | undefined;
+
+    try {
+      const { createdAdminId: adminId, adminToken } = await createTestAdminUser();
+      createdAdminId = adminId;
+
+      const response = await request(app)
+        .get('/bookings?limit=101')
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body).toHaveProperty('message', 'Limit parameter cannot exceed 100');
+    } finally {
+      if (createdAdminId !== undefined) {
+        await prisma.user.deleteMany({
+          where: { id: createdAdminId },
+        });
+      }
+    }
+  });
+});
+
 describe('PATCH /tours/:tourId/reviews/:reviewId', () => {
   it('updates a review owned by the authenticated user', async () => {
     let createdUserId: number | undefined;

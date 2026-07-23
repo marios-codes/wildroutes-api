@@ -6,12 +6,18 @@ import type {
   GetBookingsQueryDto,
 } from '../../../src/dtos/booking.dto';
 import {
+  countAllBookings,
   countBookingsByUser,
   createBooking as createBookingRepository,
+  findAllBookings,
   findBookingsByUser,
 } from '../../../src/repositories/booking.repository';
 import { findTourById } from '../../../src/repositories/tours.repository';
-import { createBooking, getBookingsForUser } from '../../../src/services/booking.service';
+import {
+  createBooking,
+  getAllBookings,
+  getBookingsForUser,
+} from '../../../src/services/booking.service';
 
 vi.mock('../../../src/repositories/booking.repository');
 vi.mock('../../../src/repositories/tours.repository');
@@ -147,5 +153,47 @@ describe('getBookingsForUser', () => {
       take: 5,
     });
     expect(countBookingsByUser).toHaveBeenCalledWith(userId);
+  });
+});
+
+describe('getAllBookings', () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  it('returns all bookings with pagination metadata', async () => {
+    const queryData: GetBookingsQueryDto = {
+      page: 2,
+      limit: 5,
+    };
+
+    const bookings: BookingResponseDto[] = [
+      {
+        id: 6,
+        userId: 11,
+        tourId: 21,
+        createdAt: new Date('2026-01-02T00:00:00.000Z'),
+        updatedAt: new Date('2026-01-02T00:00:00.000Z'),
+      },
+    ];
+
+    vi.mocked(findAllBookings).mockResolvedValue(bookings);
+    vi.mocked(countAllBookings).mockResolvedValue(12);
+
+    await expect(getAllBookings(queryData)).resolves.toEqual({
+      bookings,
+      pagination: {
+        page: 2,
+        limit: 5,
+        totalItems: 12,
+        totalPages: 3,
+      },
+    });
+
+    expect(findAllBookings).toHaveBeenCalledWith({
+      skip: 5,
+      take: 5,
+    });
+    expect(countAllBookings).toHaveBeenCalledTimes(1);
   });
 });

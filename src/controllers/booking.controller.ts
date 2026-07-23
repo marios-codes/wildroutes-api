@@ -1,5 +1,9 @@
 import { Request, Response } from 'express';
-import { createBooking, getBookingsForUser } from '../services/booking.service';
+import {
+  createBooking,
+  getAllBookings,
+  getBookingsForUser,
+} from '../services/booking.service';
 import parseId from '../utils/parse-id';
 import { AppError } from '../utils/app-error';
 import type { CreateBookingData } from '../dtos/booking.dto';
@@ -32,6 +36,20 @@ export const getCurrentUserBookingsHandler = async (req: Request, res: Response)
   const query = validateGetBookingsQuery(req.query);
 
   const { bookings, pagination } = await getBookingsForUser(userId, query);
+
+  res.status(200).json({
+    success: true,
+    count: bookings.length,
+    pagination,
+    data: {
+      bookings,
+    },
+  });
+};
+
+export const getAllBookingsHandler = async (req: Request, res: Response) => {
+  const query = validateGetBookingsQuery(req.query);
+  const { bookings, pagination } = await getAllBookings(query);
 
   res.status(200).json({
     success: true,

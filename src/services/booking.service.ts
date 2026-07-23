@@ -5,8 +5,10 @@ import type {
 } from '../dtos/booking.dto';
 import { findTourById } from '../repositories/tours.repository';
 import {
+  countAllBookings,
   countBookingsByUser,
   createBooking as createBookingRepository,
+  findAllBookings,
   findBookingsByUser,
 } from '../repositories/booking.repository';
 import { AppError } from '../utils/app-error';
@@ -39,6 +41,26 @@ export const getBookingsForUser = async (userId: number, queryData: GetBookingsQ
 
   const bookings = await findBookingsByUser({ userId, skip, take });
   const totalItems = await countBookingsByUser(userId);
+  const totalPages = Math.ceil(totalItems / limit);
+
+  return {
+    bookings,
+    pagination: {
+      page,
+      limit,
+      totalItems,
+      totalPages,
+    },
+  };
+};
+
+export const getAllBookings = async (queryData: GetBookingsQueryDto) => {
+  const { page, limit } = queryData;
+  const skip = (page - 1) * limit;
+  const take = limit;
+
+  const bookings = await findAllBookings({ skip, take });
+  const totalItems = await countAllBookings();
   const totalPages = Math.ceil(totalItems / limit);
 
   return {

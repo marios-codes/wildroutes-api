@@ -7,6 +7,11 @@ type FindBookingsByUserOptions = {
   take: number;
 };
 
+type FindAllBookingsOptions = {
+  skip: number;
+  take: number;
+};
+
 const bookingSelect = {
   id: true,
   userId: true,
@@ -40,4 +45,20 @@ export const findBookingsByUser = async ({
 
 export const countBookingsByUser = async (userId: number): Promise<number> => {
   return prisma.booking.count({ where: { userId } });
+};
+
+export const findAllBookings = async ({
+  skip,
+  take,
+}: FindAllBookingsOptions): Promise<BookingResponseDto[]> => {
+  return prisma.booking.findMany({
+    skip,
+    take,
+    select: bookingSelect,
+    orderBy: { id: 'asc' },
+  });
+};
+
+export const countAllBookings = async (): Promise<number> => {
+  return prisma.booking.count();
 };
