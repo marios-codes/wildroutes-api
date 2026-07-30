@@ -498,6 +498,143 @@ describe('DELETE /tours/:id', () => {
       }
     }
   });
+  it('returns 409 when an admin deletes a tour which has bookings', async () => {
+    let createdUserId: number | undefined;
+    let createdTourId: number | undefined;
+    let createdBookingId: number | undefined;
+    let createdAdminId: number | undefined;
+
+    try {
+      const { createdUserId: userId } = await createTestUser();
+      createdUserId = userId;
+
+      const { createdTourId: tourId } = await createTestTour();
+      createdTourId = tourId;
+
+      const { createdBookingId: bookingId } = await createTestBooking(tourId, userId);
+      createdBookingId = bookingId;
+
+      const { createdAdminId: adminId, adminToken } = await createTestAdminUser();
+      createdAdminId = adminId;
+
+      const deleteTourResponse = await request(app)
+        .delete(`/tours/${tourId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(deleteTourResponse.status).toBe(409);
+      expect(deleteTourResponse.body).toHaveProperty('success', false);
+      expect(deleteTourResponse.body).toHaveProperty(
+        'message',
+        'Tour cannot be deleted while it has related records',
+      );
+
+      const tour = await prisma.tour.findUnique({
+        where: { id: tourId },
+        select: { id: true },
+      });
+      const booking = await prisma.booking.findUnique({
+        where: { id: bookingId },
+        select: { id: true },
+      });
+
+      expect(tour).toStrictEqual({ id: tourId });
+      expect(booking).toStrictEqual({ id: bookingId });
+    } finally {
+      if (createdBookingId !== undefined) {
+        const deleteCreatedBookingResponse = await prisma.booking.deleteMany({
+          where: { id: createdBookingId },
+        });
+        expect(deleteCreatedBookingResponse.count).toBe(1);
+      }
+      if (createdTourId !== undefined) {
+        const deleteCreatedTourResponse = await prisma.tour.deleteMany({
+          where: { id: createdTourId },
+        });
+        expect(deleteCreatedTourResponse.count).toBe(1);
+      }
+      if (createdUserId !== undefined) {
+        const deleteCreatedUserResponse = await prisma.user.deleteMany({
+          where: { id: createdUserId },
+        });
+        expect(deleteCreatedUserResponse.count).toBe(1);
+      }
+      if (createdAdminId !== undefined) {
+        const deleteCreatedUserResponse = await prisma.user.deleteMany({
+          where: { id: createdAdminId },
+        });
+        expect(deleteCreatedUserResponse.count).toBe(1);
+      }
+    }
+  });
+
+  it('returns 409 when an admin deletes a tour which has reviews', async () => {
+    let createdUserId: number | undefined;
+    let createdTourId: number | undefined;
+    let createdReviewId: number | undefined;
+    let createdAdminId: number | undefined;
+
+    try {
+      const { createdUserId: userId } = await createTestUser();
+      createdUserId = userId;
+
+      const { createdTourId: tourId } = await createTestTour();
+      createdTourId = tourId;
+
+      const { createdReviewId: reviewId } = await createTestReview(tourId, userId);
+      createdReviewId = reviewId;
+
+      const { createdAdminId: adminId, adminToken } = await createTestAdminUser();
+      createdAdminId = adminId;
+
+      const deleteTourResponse = await request(app)
+        .delete(`/tours/${tourId}`)
+        .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(deleteTourResponse.status).toBe(409);
+      expect(deleteTourResponse.body).toHaveProperty('success', false);
+      expect(deleteTourResponse.body).toHaveProperty(
+        'message',
+        'Tour cannot be deleted while it has related records',
+      );
+
+      const tour = await prisma.tour.findUnique({
+        where: { id: tourId },
+        select: { id: true },
+      });
+      const review = await prisma.review.findUnique({
+        where: { id: reviewId },
+        select: { id: true },
+      });
+
+      expect(tour).toStrictEqual({ id: tourId });
+      expect(review).toStrictEqual({ id: reviewId });
+    } finally {
+      if (createdReviewId !== undefined) {
+        const deleteCreatedReviewResponse = await prisma.review.deleteMany({
+          where: { id: createdReviewId },
+        });
+        expect(deleteCreatedReviewResponse.count).toBe(1);
+      }
+      if (createdTourId !== undefined) {
+        const deleteCreatedTourResponse = await prisma.tour.deleteMany({
+          where: { id: createdTourId },
+        });
+        expect(deleteCreatedTourResponse.count).toBe(1);
+      }
+      if (createdUserId !== undefined) {
+        const deleteCreatedUserResponse = await prisma.user.deleteMany({
+          where: { id: createdUserId },
+        });
+        expect(deleteCreatedUserResponse.count).toBe(1);
+      }
+      if (createdAdminId !== undefined) {
+        const deleteCreatedUserResponse = await prisma.user.deleteMany({
+          where: { id: createdAdminId },
+        });
+        expect(deleteCreatedUserResponse.count).toBe(1);
+      }
+    }
+  });
 });
 
 describe('GET /tours/:tourId/reviews', () => {
@@ -970,7 +1107,7 @@ describe('POST /tours/:tourId/bookings', () => {
 });
 
 describe('GET /bookings/me', () => {
-  it('returns only the authenticated user\'s paginated bookings', async () => {
+  it("returns only the authenticated user's paginated bookings", async () => {
     const createdBookingIds: number[] = [];
     const createdTourIds: number[] = [];
     const createdUserIds: number[] = [];
@@ -1202,9 +1339,7 @@ describe('GET /bookings', () => {
       const { createdUserId: userId, token } = await createTestUser();
       createdUserId = userId;
 
-      const response = await request(app)
-        .get('/bookings')
-        .set('Authorization', `Bearer ${token}`);
+      const response = await request(app).get('/bookings').set('Authorization', `Bearer ${token}`);
 
       expect(response.status).toBe(403);
       expect(response.body).toHaveProperty('success', false);

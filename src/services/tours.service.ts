@@ -8,6 +8,7 @@ import {
 } from '../repositories/tours.repository';
 import type { CreateTourDto, GetToursQueryDto, UpdateTourDto } from '../dtos/tours.dto';
 import { AppError } from '../utils/app-error';
+import { Prisma } from '@prisma/client';
 
 export const getTours = async (queryData: GetToursQueryDto) => {
   const { page, limit, difficulty } = queryData;
@@ -82,5 +83,12 @@ export const deleteTour = async (tourId: number) => {
     throw new AppError('Tour not found', 404);
   }
 
-  return deleteTourById(tourId);
+  try {
+    return await deleteTourById(tourId);
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2003') {
+      throw new AppError('Tour cannot be deleted while it has related records', 409);
+    }
+    throw error;
+  }
 };
