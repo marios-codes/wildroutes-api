@@ -1,69 +1,92 @@
 generator client {
-    provider = "prisma-client-js"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-    provider = "postgresql"
+  provider = "postgresql"
 }
 
 enum Difficulty {
-    EASY
-    MEDIUM
-    HARD
+  EASY
+  MEDIUM
+  HARD
 }
 
 model Tour {
-    id Int @id @default(autoincrement())
-    name String
-    duration Int
-    difficulty Difficulty
-    rating Float
-    numberOfParticipants Int
-    reviews Review[]
-    bookings Booking[]
+  id                   Int            @id @default(autoincrement())
+  name                 String
+  duration             Int
+  difficulty           Difficulty
+  rating               Float
+  numberOfParticipants Int
+  reviews              Review[]
+  bookings             Booking[]
+  tourCategories       TourCategory[]
 }
 
 enum Role {
-    USER
-    ADMIN
+  USER
+  ADMIN
 }
 
 model User {
-    id Int @id @default(autoincrement())
-    name String
-    email String @unique
-    passwordHash String
-    role Role @default(USER)
-    reviews Review[]
-    bookings Booking[]
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  id           Int       @id @default(autoincrement())
+  name         String
+  email        String    @unique
+  passwordHash String
+  role         Role      @default(USER)
+  reviews      Review[]
+  bookings     Booking[]
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
 model Review {
-    id Int @id @default(autoincrement())
-    rating Int
-    comment String
-    userId Int
-    tourId Int
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  rating    Int
+  comment   String
+  userId    Int
+  tourId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    user User @relation(fields: [userId], references: [id], onDelete: Restrict)
-    tour Tour @relation(fields: [tourId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Restrict)
 
-    @@unique([userId, tourId])
+  @@unique([userId, tourId])
 }
 
 model Booking {
-    id Int @id @default(autoincrement())
-    userId Int
-    tourId Int
-    createdAt DateTime @default(now())
-    updatedAt DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  tourId    Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
-    user User @relation(fields: [userId], references: [id], onDelete: Restrict)
-    tour Tour @relation(fields: [tourId], references: [id], onDelete: Restrict)
+  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  tour Tour @relation(fields: [tourId], references: [id], onDelete: Restrict)
 
-    @@unique([userId, tourId])
+  @@unique([userId, tourId])
+}
+
+model Category {
+  id             Int            @id @default(autoincrement())
+  name           String         @unique
+  tourCategories TourCategory[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model TourCategory {
+  id         Int      @id @default(autoincrement())
+  tourId     Int
+  categoryId Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  tour     Tour     @relation(fields: [tourId], references: [id], onDelete: Restrict)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+
+  @@unique([tourId, categoryId])
+  @@index([categoryId])
 }
