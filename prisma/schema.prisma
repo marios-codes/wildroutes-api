@@ -71,7 +71,8 @@ model Booking {
 
 model Category {
   id             Int            @id @default(autoincrement())
-  name           String         @unique
+  name           String
+  normalizedName String         @unique
   tourCategories TourCategory[]
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
