@@ -61,3 +61,32 @@ jobs:
 
       - name: Run integration tests
         run: npm run test:integration
+
+  image-security:
+    name: Build and scan container image
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Build production image
+        run: docker build --platform linux/amd64 --tag wildroutes-api:${{ github.sha }} .
+
+      - name: Enforce image vulnerability threshold
+        uses: docker/scout-action@v1
+        with:
+          command: cves
+          image: 'local://wildroutes-api:${{ github.sha }}'
+          platform: linux/amd64
+          only-severities: critical,high
+          only-fixed: true
+          ignore-base: true
+          exit-code: true
+          summary: true
+          write-comment: false
+          dockerhub-user: ${{ secrets.DOCKERHUB_USERNAME }}
+          dockerhub-password: ${{ secrets.DOCKERHUB_SCOUT_TOKEN }}
