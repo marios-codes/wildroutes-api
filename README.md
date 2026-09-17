@@ -173,6 +173,36 @@ docker-compose up --build
 
 ---
 
+## Container Image Security
+
+GitHub Actions builds the production Docker image for `linux/amd64` after the application test job passes. Docker Scout then enforces this merge gate:
+
+- fail on **fixable Critical or High** vulnerabilities;
+- ignore vulnerabilities inherited from the Node base image;
+- scan the image built in that CI run, rather than an image fetched by tag from a registry.
+
+This is deliberately not a “zero vulnerabilities” policy. Base-image and unfixed findings are still security-relevant, but are reviewed separately because this project cannot safely remediate them by patching a running container. Remediation means updating the Dockerfile, base image, or dependency manifest, rebuilding an image, and rescanning it.
+
+The workflow uses a Docker Hub username and a read-only personal access token stored as GitHub Actions secrets (`DOCKERHUB_USERNAME` and `DOCKERHUB_SCOUT_TOKEN`). No image is pushed by this CI job.
+
+### What the CI gate proves
+
+The gate protects against newly shipped, fixable Critical/High vulnerabilities in application-added runtime packages. It does not prove that the full image has no vulnerabilities, does not replace base-image review, and does not assess whether a CVE is exploitable in a particular deployment.
+
+### Release and deployment model
+
+The CI image tag is local to the runner and identifies the commit that was built; it is not a published deployment artifact. A future release workflow would:
+
+1. build and validate the image;
+2. push it to a registry with a commit or release tag;
+3. record the registry-provided immutable image digest;
+4. deploy by digest (`repository@sha256:...`), not by a mutable tag;
+5. monitor the published image for CVEs disclosed after the build.
+
+The Dockerfile currently uses the mutable `node:22-slim` base-image tag. Before a production deployment, that reference should be pinned to an approved digest and updated deliberately through the same build, scan, and validation workflow.
+
+---
+
 ## Testing
 
 This project uses Vitest for automated tests.
