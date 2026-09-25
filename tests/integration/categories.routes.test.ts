@@ -178,3 +178,54 @@ describe('POST /categories', () => {
     }
   });
 });
+
+describe('GET /categories', () => {
+  it('returns persisted categories ordered alphabetically', async () => {
+    const createdCategoryIds: number[] = [];
+
+    try {
+      const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const categoryOneName = `A Integration Test Category ${uniqueSuffix}`;
+      const categoryTwoName = `Z Integration Test Category ${uniqueSuffix}`;
+
+      const categoryOne = await prisma.category.create({
+        data: {
+          name: categoryOneName,
+          normalizedName: categoryOneName.toLowerCase(),
+        },
+      });
+      createdCategoryIds.push(categoryOne.id);
+
+      const categoryTwo = await prisma.category.create({
+        data: {
+          name: categoryTwoName,
+          normalizedName: categoryTwoName.toLowerCase(),
+        },
+      });
+      createdCategoryIds.push(categoryTwo.id);
+
+      const response = await request(app).get('/categories');
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveProperty('success', true);
+      expect(Array.isArray(response.body.data.categories)).toBe(true);
+      expect(response.body.count).toBe(response.body.data.categories.length);
+
+      const returnedTestCategories = response.body.data.categories.filter(
+        (category: { id: number }) => createdCategoryIds.includes(category.id),
+      );
+
+      expect(returnedTestCategories).toEqual([
+        { id: categoryOne.id, name: categoryOne.name },
+        { id: categoryTwo.id, name: categoryTwo.name },
+      ]);
+    } finally {
+      if (createdCategoryIds.length > 0) {
+        const deleteCreatedCategoryResponse = await prisma.category.deleteMany({
+          where: { id: { in: createdCategoryIds } },
+        });
+        expect(deleteCreatedCategoryResponse.count).toBe(createdCategoryIds.length);
+      }
+    }
+  });
+});

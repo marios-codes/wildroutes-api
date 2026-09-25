@@ -4,7 +4,10 @@ import type {
   CreateCategoryData,
   CategoryResponseDto,
 } from '../dtos/category.dto';
-import { createCategory as createCategoryRepository } from '../repositories/category.repository';
+import {
+  createCategory as createCategoryRepository,
+  findAllCategories,
+} from '../repositories/category.repository';
 import { AppError } from '../utils/app-error';
 
 export const createCategory = async (
@@ -21,4 +24,8 @@ export const createCategory = async (
 
     throw error;
   }
+};
+
+export const getCategories = async () => {
+  return findAllCategories();
 };

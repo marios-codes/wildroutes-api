@@ -16,3 +16,13 @@ export const createCategory = async (
     select: categorySelect,
   });
 };
+
+export const findAllCategories = async () => {
+  return prisma.category.findMany({
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: { name: 'asc' },
+  });
+};
