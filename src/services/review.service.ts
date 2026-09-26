@@ -10,6 +10,7 @@ import { findTourById } from '../repositories/tours.repository';
 import type {
   CreateReviewData,
   GetReviewsQueryDto,
+  ReviewListResponseDto,
   ReviewResponseDto,
   UpdateReviewDto,
   UpdateReviewData,
@@ -18,7 +19,10 @@ import type {
 import { AppError } from '../utils/app-error';
 import { Prisma } from '@prisma/client';
 
-export const getReviewsForTour = async (tourId: number, queryData: GetReviewsQueryDto) => {
+export const getReviewsForTour = async (
+  tourId: number,
+  queryData: GetReviewsQueryDto,
+): Promise<ReviewListResponseDto> => {
   const tour = await findTourById(tourId);
 
   if (tour === null) {

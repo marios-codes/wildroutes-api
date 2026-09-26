@@ -1,5 +1,6 @@
 import { Prisma } from '@prisma/client';
 import type {
+  CategoryListItemDto,
   CreateCategoryDto,
   CreateCategoryData,
   CategoryResponseDto,
@@ -26,6 +27,6 @@ export const createCategory = async (
   }
 };
 
-export const getCategories = async () => {
+export const getCategories = async (): Promise<CategoryListItemDto[]> => {
   return findAllCategories();
 };

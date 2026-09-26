@@ -6,11 +6,17 @@ import {
   updateTourById,
   deleteTourById,
 } from '../repositories/tours.repository';
-import type { CreateTourDto, GetToursQueryDto, UpdateTourDto } from '../dtos/tours.dto';
+import type {
+  CreateTourDto,
+  GetToursQueryDto,
+  UpdateTourDto,
+  TourResponseDto,
+  TourListResponseDto,
+} from '../dtos/tours.dto';
 import { AppError } from '../utils/app-error';
 import { Prisma } from '@prisma/client';
 
-export const getTours = async (queryData: GetToursQueryDto) => {
+export const getTours = async (queryData: GetToursQueryDto): Promise<TourListResponseDto> => {
   const { page, limit, difficulty } = queryData;
 
   const skip = (page - 1) * limit;
@@ -30,7 +36,7 @@ export const getTours = async (queryData: GetToursQueryDto) => {
   };
 };
 
-export const getTour = async (tourId: number) => {
+export const getTour = async (tourId: number): Promise<TourResponseDto> => {
   const tour = await findTourById(tourId);
 
   if (tour === null) {
@@ -40,11 +46,14 @@ export const getTour = async (tourId: number) => {
   return tour;
 };
 
-export const createTour = async (tourData: CreateTourDto) => {
+export const createTour = async (tourData: CreateTourDto): Promise<TourResponseDto> => {
   return createTourRepository(tourData);
 };
 
-export const updateTour = async (tourId: number, tourData: UpdateTourDto) => {
+export const updateTour = async (
+  tourId: number,
+  tourData: UpdateTourDto,
+): Promise<TourResponseDto> => {
   const tour = await findTourById(tourId);
 
   if (tour === null) {
@@ -76,7 +85,7 @@ export const updateTour = async (tourId: number, tourData: UpdateTourDto) => {
   return updateTourById(tourId, updateTourDto);
 };
 
-export const deleteTour = async (tourId: number) => {
+export const deleteTour = async (tourId: number): Promise<TourResponseDto> => {
   const tour = await findTourById(tourId);
 
   if (tour === null) {

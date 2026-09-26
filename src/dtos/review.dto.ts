@@ -1,3 +1,5 @@
+import type { PaginationDto } from './pagination.dto';
+
 export type CreateReviewDto = {
   rating: number;
   comment: string;
@@ -38,4 +40,9 @@ export type DeleteReviewData = {
   reviewId: number;
   tourId: number;
   userId: number;
+};
+
+export type ReviewListResponseDto = {
+  reviews: ReviewResponseDto[];
+  pagination: PaginationDto;
 };

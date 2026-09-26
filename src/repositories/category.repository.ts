@@ -1,5 +1,5 @@
 import prisma from '../config/prisma';
-import type { CreateCategoryData, CategoryResponseDto } from '../dtos/category.dto';
+  CategoryListItemDto,
 
 const categorySelect = {
   id: true,
@@ -17,7 +17,7 @@ export const createCategory = async (
   });
 };
 
-export const findAllCategories = async () => {
+export const findAllCategories = async (): Promise<CategoryListItemDto[]> => {
   return prisma.category.findMany({
     select: {
       id: true,

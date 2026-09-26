@@ -1,4 +1,5 @@
 import type {
+  BookingListResponseDto,
   BookingResponseDto,
   CreateBookingData,
   GetBookingsQueryDto,
@@ -34,7 +35,10 @@ export const createBooking = async (
   }
 };
 
-export const getBookingsForUser = async (userId: number, queryData: GetBookingsQueryDto) => {
+export const getBookingsForUser = async (
+  userId: number,
+  queryData: GetBookingsQueryDto,
+): Promise<BookingListResponseDto> => {
   const { page, limit } = queryData;
   const skip = (page - 1) * limit;
   const take = limit;
@@ -54,7 +58,9 @@ export const getBookingsForUser = async (userId: number, queryData: GetBookingsQ
   };
 };
 
-export const getAllBookings = async (queryData: GetBookingsQueryDto) => {
+export const getAllBookings = async (
+  queryData: GetBookingsQueryDto,
+): Promise<BookingListResponseDto> => {
   const { page, limit } = queryData;
   const skip = (page - 1) * limit;
   const take = limit;

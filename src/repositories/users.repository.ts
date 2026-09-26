@@ -1,4 +1,9 @@
 import prisma from '../config/prisma';
+import type { UserResponseDto } from '../dtos/auth.dto';
+
+type UserWithPasswordHash = UserResponseDto & {
+  passwordHash: string;
+};
 
 type CreateUserData = {
   name: string;
@@ -6,7 +11,7 @@ type CreateUserData = {
   passwordHash: string;
 };
 
-export const findUserByEmail = async (email: string) => {
+export const findUserByEmail = async (email: string): Promise<UserWithPasswordHash | null> => {
   return prisma.user.findUnique({
     where: {
       email,
@@ -21,7 +26,7 @@ export const findUserByEmail = async (email: string) => {
   });
 };
 
-export const createUser = async (userData: CreateUserData) => {
+export const createUser = async (userData: CreateUserData): Promise<UserResponseDto> => {
   return prisma.user.create({
     data: userData,
     select: {

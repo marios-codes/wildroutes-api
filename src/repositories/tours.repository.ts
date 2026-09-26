@@ -1,5 +1,5 @@
 import prisma from '../config/prisma';
-import type { CreateTourDto, UpdateTourDto, Difficulty } from '../dtos/tours.dto';
+import type { CreateTourDto, UpdateTourDto, Difficulty, TourResponseDto } from '../dtos/tours.dto';
 
 type FindAllToursOptions = {
   skip: number;
@@ -7,7 +7,11 @@ type FindAllToursOptions = {
   difficulty?: Difficulty;
 };
 
-export const findAllTours = async ({ skip, take, difficulty }: FindAllToursOptions) => {
+export const findAllTours = async ({
+  skip,
+  take,
+  difficulty,
+}: FindAllToursOptions): Promise<TourResponseDto[]> => {
   return prisma.tour.findMany({
     skip,
     take,
@@ -24,14 +28,14 @@ export const findAllTours = async ({ skip, take, difficulty }: FindAllToursOptio
   });
 };
 
-export const countAllTours = async (difficulty?: Difficulty) => {
+export const countAllTours = async (difficulty?: Difficulty): Promise<number> => {
   if (difficulty !== undefined) {
     return prisma.tour.count({ where: { difficulty } });
   }
   return prisma.tour.count();
 };
 
-export const findTourById = async (tourId: number) => {
+export const findTourById = async (tourId: number): Promise<TourResponseDto | null> => {
   return prisma.tour.findUnique({
     where: {
       id: tourId,
@@ -47,7 +51,7 @@ export const findTourById = async (tourId: number) => {
   });
 };
 
-export const createTour = async (tourData: CreateTourDto) => {
+export const createTour = async (tourData: CreateTourDto): Promise<TourResponseDto> => {
   return prisma.tour.create({
     data: tourData,
     select: {
@@ -61,7 +65,10 @@ export const createTour = async (tourData: CreateTourDto) => {
   });
 };
 
-export const updateTourById = async (tourId: number, tourData: UpdateTourDto) => {
+export const updateTourById = async (
+  tourId: number,
+  tourData: UpdateTourDto,
+): Promise<TourResponseDto> => {
   return prisma.tour.update({
     where: { id: tourId },
     data: tourData,
@@ -76,7 +83,7 @@ export const updateTourById = async (tourId: number, tourData: UpdateTourDto) =>
   });
 };
 
-export const deleteTourById = async (tourId: number) => {
+export const deleteTourById = async (tourId: number): Promise<TourResponseDto> => {
   return prisma.tour.delete({
     where: { id: tourId },
   });

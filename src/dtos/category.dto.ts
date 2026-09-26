@@ -12,3 +12,7 @@ export type CategoryResponseDto = {
   createdAt: Date;
   updatedAt: Date;
 };
+export type CategoryListItemDto = {
+  id: number;
+  name: string;
+};
