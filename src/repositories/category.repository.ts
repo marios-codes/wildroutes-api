@@ -1,5 +1,9 @@
 import prisma from '../config/prisma';
+import type {
+  CreateCategoryData,
+  CategoryResponseDto,
   CategoryListItemDto,
+} from '../dtos/category.dto';
 
 const categorySelect = {
   id: true,
