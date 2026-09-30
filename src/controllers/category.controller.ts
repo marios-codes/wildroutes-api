@@ -1,7 +1,11 @@
 import { Request, Response } from 'express';
-import { createCategory, getCategories } from '../services/category.service';
-import { validateCreateCategoryBody } from '../validators/category.validator';
-import type { CreateCategoryDto } from '../dtos/category.dto';
+import { createCategory, getCategories, assignCategoryToTour } from '../services/category.service';
+import {
+  validateAssignCategoryToTourBody,
+  validateCreateCategoryBody,
+} from '../validators/category.validator';
+import type { CreateCategoryDto, AssignCategoryToTourData } from '../dtos/category.dto';
+import parseId from '../utils/parse-id';
 
 export const createCategoryHandler = async (req: Request, res: Response) => {
   const { name } = validateCreateCategoryBody(req.body);
@@ -26,5 +30,20 @@ export const getCategoriesHandler = async (_req: Request, res: Response) => {
       categories,
     },
     count: categories.length,
+  });
+};
+
+export const assignCategoryToTourHandler = async (req: Request, res: Response) => {
+  const tourId = parseId(req.params.tourId);
+  const { categoryId } = validateAssignCategoryToTourBody(req.body);
+  const assignCategoryToTourData: AssignCategoryToTourData = { tourId, categoryId };
+
+  const tourCategory = await assignCategoryToTour(assignCategoryToTourData);
+
+  res.status(201).json({
+    success: true,
+    data: {
+      tourCategory,
+    },
   });
 };

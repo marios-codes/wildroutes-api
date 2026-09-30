@@ -1,13 +1,23 @@
 import prisma from '../config/prisma';
 import type {
+  CategoryListItemDto,
   CreateCategoryData,
   CategoryResponseDto,
-  CategoryListItemDto,
+  AssignCategoryToTourData,
+  TourCategoryResponseDto,
 } from '../dtos/category.dto';
 
 const categorySelect = {
   id: true,
   name: true,
+  createdAt: true,
+  updatedAt: true,
+};
+
+const tourCategorySelect = {
+  id: true,
+  tourId: true,
+  categoryId: true,
   createdAt: true,
   updatedAt: true,
 };
@@ -28,5 +38,23 @@ export const findAllCategories = async (): Promise<CategoryListItemDto[]> => {
       name: true,
     },
     orderBy: { name: 'asc' },
+  });
+};
+
+export const findCategoryById = async (categoryId: number): Promise<CategoryResponseDto | null> => {
+  return prisma.category.findUnique({
+    where: {
+      id: categoryId,
+    },
+    select: categorySelect,
+  });
+};
+
+export const assignCategoryToTour = async (
+  tourCategoryData: AssignCategoryToTourData,
+): Promise<TourCategoryResponseDto> => {
+  return prisma.tourCategory.create({
+    data: tourCategoryData,
+    select: tourCategorySelect,
   });
 };

@@ -32,6 +32,27 @@ export const createTestTour = async () => {
   };
 };
 
+export const createTestCategory = async () => {
+  const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const name = `Integration Test Category ${uniqueSuffix}`;
+
+  const createdCategory = await prisma.category.create({
+    data: {
+      name,
+      normalizedName: name.toLowerCase(),
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  return {
+    createdCategory,
+    createdCategoryId: createdCategory.id,
+  };
+};
+
 export const createTestUser = async () => {
   const password = 'password';
   const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);

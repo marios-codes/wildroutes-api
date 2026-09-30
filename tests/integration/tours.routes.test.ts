@@ -6,6 +6,7 @@ import { TOUR_DIFFICULTIES } from '../../src/dtos/tours.dto';
 import {
   createTestAdminUser,
   createTestBooking,
+  createTestCategory,
   createTestReview,
   createTestTour,
   createTestUser,
@@ -952,6 +953,223 @@ describe('POST /tours/:tourId/reviews', () => {
           where: { id: createdUserId },
         });
         expect(deleteCreatedUserResponse.count).toBe(1);
+      }
+    }
+  });
+});
+
+describe('POST /tours/:tourId/categories', () => {
+  it('assigns a category to a tour as an admin', async () => {
+    let createdTourId: number | undefined;
+    let createdCategoryId: number | undefined;
+    let createdAdminId: number | undefined;
+
+    try {
+      const { createdTourId: tourId } = await createTestTour();
+      createdTourId = tourId;
+
+      const { createdCategoryId: categoryId } = await createTestCategory();
+      createdCategoryId = categoryId;
+
+      const { createdAdminId: adminId, adminToken } = await createTestAdminUser();
+      createdAdminId = adminId;
+
+      const response = await request(app)
+        .post(`/tours/${tourId}/categories`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ categoryId });
+
+      expect(response.status).toBe(201);
+      expect(response.body).toHaveProperty('success', true);
+      expect(response.body.data.tourCategory).toMatchObject({
+        tourId,
+        categoryId,
+      });
+      expect(response.body.data.tourCategory).not.toHaveProperty('normalizedName');
+    } finally {
+      if (createdTourId !== undefined && createdCategoryId !== undefined) {
+        await prisma.tourCategory.deleteMany({
+          where: { tourId: createdTourId, categoryId: createdCategoryId },
+        });
+      }
+      if (createdCategoryId !== undefined) {
+        await prisma.category.deleteMany({ where: { id: createdCategoryId } });
+      }
+      if (createdTourId !== undefined) {
+        await prisma.tour.deleteMany({ where: { id: createdTourId } });
+      }
+      if (createdAdminId !== undefined) {
+        await prisma.user.deleteMany({ where: { id: createdAdminId } });
+      }
+    }
+  });
+
+  it('returns 401 when the request is unauthenticated', async () => {
+    const response = await request(app).post('/tours/1/categories').send({ categoryId: 1 });
+
+    expect(response.status).toBe(401);
+    expect(response.body).toHaveProperty('success', false);
+    expect(response.body).toHaveProperty('message', 'Authentication required');
+  });
+
+  it('returns 403 when a normal user attempts to assign a category', async () => {
+    let createdUserId: number | undefined;
+
+    try {
+      const { createdUserId: userId, token } = await createTestUser();
+      createdUserId = userId;
+
+      const response = await request(app)
+        .post('/tours/1/categories')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ categoryId: 1 });
+
+      expect(response.status).toBe(403);
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body).toHaveProperty('message', 'Authorization required');
+    } finally {
+      if (createdUserId !== undefined) {
+        await prisma.user.deleteMany({ where: { id: createdUserId } });
+      }
+    }
+  });
+
+  it('returns 400 when categoryId is invalid', async () => {
+    let createdAdminId: number | undefined;
+
+    try {
+      const { createdAdminId: adminId, adminToken } = await createTestAdminUser();
+      createdAdminId = adminId;
+
+      const response = await request(app)
+        .post('/tours/1/categories')
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ categoryId: 0 });
+
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty('success', false);
+    } finally {
+      if (createdAdminId !== undefined) {
+        await prisma.user.deleteMany({ where: { id: createdAdminId } });
+      }
+    }
+  });
+
+  it('returns 404 when the tour does not exist', async () => {
+    let createdCategoryId: number | undefined;
+    let createdAdminId: number | undefined;
+
+    try {
+      const { createdTourId: tourId } = await createTestTour();
+      const deleteCreatedTourResponse = await prisma.tour.deleteMany({ where: { id: tourId } });
+      expect(deleteCreatedTourResponse.count).toBe(1);
+
+      const { createdCategoryId: categoryId } = await createTestCategory();
+      createdCategoryId = categoryId;
+
+      const { createdAdminId: adminId, adminToken } = await createTestAdminUser();
+      createdAdminId = adminId;
+
+      const response = await request(app)
+        .post(`/tours/${tourId}/categories`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ categoryId });
+
+      expect(response.status).toBe(404);
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body).toHaveProperty('message', 'Tour not found');
+    } finally {
+      if (createdCategoryId !== undefined) {
+        await prisma.category.deleteMany({ where: { id: createdCategoryId } });
+      }
+      if (createdAdminId !== undefined) {
+        await prisma.user.deleteMany({ where: { id: createdAdminId } });
+      }
+    }
+  });
+
+  it('returns 404 when the category does not exist', async () => {
+    let createdTourId: number | undefined;
+    let createdAdminId: number | undefined;
+
+    try {
+      const { createdTourId: tourId } = await createTestTour();
+      createdTourId = tourId;
+
+      const { createdCategoryId: categoryId } = await createTestCategory();
+      const deleteCreatedCategoryResponse = await prisma.category.deleteMany({
+        where: { id: categoryId },
+      });
+      expect(deleteCreatedCategoryResponse.count).toBe(1);
+
+      const { createdAdminId: adminId, adminToken } = await createTestAdminUser();
+      createdAdminId = adminId;
+
+      const response = await request(app)
+        .post(`/tours/${tourId}/categories`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ categoryId });
+
+      expect(response.status).toBe(404);
+      expect(response.body).toHaveProperty('success', false);
+      expect(response.body).toHaveProperty('message', 'Category not found');
+    } finally {
+      if (createdTourId !== undefined) {
+        await prisma.tour.deleteMany({ where: { id: createdTourId } });
+      }
+      if (createdAdminId !== undefined) {
+        await prisma.user.deleteMany({ where: { id: createdAdminId } });
+      }
+    }
+  });
+
+  it('returns 409 when the category is already assigned to the tour', async () => {
+    let createdTourId: number | undefined;
+    let createdCategoryId: number | undefined;
+    let createdAdminId: number | undefined;
+
+    try {
+      const { createdTourId: tourId } = await createTestTour();
+      createdTourId = tourId;
+
+      const { createdCategoryId: categoryId } = await createTestCategory();
+      createdCategoryId = categoryId;
+
+      const { createdAdminId: adminId, adminToken } = await createTestAdminUser();
+      createdAdminId = adminId;
+
+      const firstResponse = await request(app)
+        .post(`/tours/${tourId}/categories`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ categoryId });
+
+      expect(firstResponse.status).toBe(201);
+
+      const duplicateResponse = await request(app)
+        .post(`/tours/${tourId}/categories`)
+        .set('Authorization', `Bearer ${adminToken}`)
+        .send({ categoryId });
+
+      expect(duplicateResponse.status).toBe(409);
+      expect(duplicateResponse.body).toHaveProperty('success', false);
+      expect(duplicateResponse.body).toHaveProperty(
+        'message',
+        'Category is already assigned to this tour',
+      );
+    } finally {
+      if (createdTourId !== undefined && createdCategoryId !== undefined) {
+        await prisma.tourCategory.deleteMany({
+          where: { tourId: createdTourId, categoryId: createdCategoryId },
+        });
+      }
+      if (createdCategoryId !== undefined) {
+        await prisma.category.deleteMany({ where: { id: createdCategoryId } });
+      }
+      if (createdTourId !== undefined) {
+        await prisma.tour.deleteMany({ where: { id: createdTourId } });
+      }
+      if (createdAdminId !== undefined) {
+        await prisma.user.deleteMany({ where: { id: createdAdminId } });
       }
     }
   });

@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { validateCreateCategoryBody } from '../../../src/validators/category.validator';
+import {
+  validateCreateCategoryBody,
+  validateAssignCategoryToTourBody,
+} from '../../../src/validators/category.validator';
 import { AppError } from '../../../src/utils/app-error';
 
 const expectBadRequest = (reqBody: unknown, expectedMessage: string): void => {
@@ -12,6 +15,16 @@ const expectBadRequest = (reqBody: unknown, expectedMessage: string): void => {
       message: expectedMessage,
       statusCode: 400,
     });
+  }
+};
+
+const expectAssignCategoryToTourBadRequest = (reqBody: unknown): void => {
+  try {
+    validateAssignCategoryToTourBody(reqBody);
+    expect.unreachable('Expected category assignment validation to throw');
+  } catch (error) {
+    expect(error).toBeInstanceOf(AppError);
+    expect(error).toMatchObject({ statusCode: 400 });
   }
 };
 
@@ -49,9 +62,38 @@ describe('validateCreateCategoryBody', () => {
   });
 
   it('throws when the body contains unexpected extra fields', () => {
-    expectBadRequest(
-      { name: 'Hiking', duration: 3 },
-      'Unrecognized key: "duration"',
-    );
+    expectBadRequest({ name: 'Hiking', duration: 3 }, 'Unrecognized key: "duration"');
+  });
+});
+
+describe('validateAssignCategoryToTourBody', () => {
+  it('returns a AssignCategoryToTourDto for a valid body', () => {
+    expect(
+      validateAssignCategoryToTourBody({
+        categoryId: 1,
+      }),
+    ).toStrictEqual({
+      categoryId: 1,
+    });
+  });
+
+  it('throws when categoryId is zero', () => {
+    expectAssignCategoryToTourBadRequest({ categoryId: 0 });
+  });
+
+  it('throws when categoryId is negative', () => {
+    expectAssignCategoryToTourBadRequest({ categoryId: -1 });
+  });
+
+  it('throws when categoryId is not an integer', () => {
+    expectAssignCategoryToTourBadRequest({ categoryId: 1.5 });
+  });
+
+  it('throws when categoryId is a string', () => {
+    expectAssignCategoryToTourBadRequest({ categoryId: '1' });
+  });
+
+  it('throws when the body contains unexpected extra fields', () => {
+    expectAssignCategoryToTourBadRequest({ categoryId: 1, unexpectedField: true });
   });
 });

@@ -12,6 +12,7 @@ import {
   getReviewsForTourHandler,
   updateReviewHandler,
 } from '../controllers/review.controller';
+import { assignCategoryToTourHandler } from '../controllers/category.controller';
 import { createBookingHandler } from '../controllers/booking.controller';
 import { authenticateUser, requireRole } from '../middlewares/auth.middleware';
 
@@ -24,6 +25,12 @@ router.delete('/:tourId/reviews/:reviewId', authenticateUser, deleteReviewHandle
 router.get('/:tourId/reviews', getReviewsForTourHandler);
 router.post('/:tourId/reviews', authenticateUser, createReviewHandler);
 router.post('/:tourId/bookings', authenticateUser, createBookingHandler);
+router.post(
+  '/:tourId/categories',
+  authenticateUser,
+  requireRole('ADMIN'),
+  assignCategoryToTourHandler,
+);
 router.get('/:id', getTourHandler);
 router.patch('/:id', authenticateUser, requireRole('ADMIN'), updateTourHandler);
 router.delete('/:id', authenticateUser, requireRole('ADMIN'), deleteTourHandler);
