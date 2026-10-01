@@ -1,14 +1,10 @@
-import 'dotenv/config';
 import jwt from 'jsonwebtoken';
+import { config } from '../config/env';
 import type { Role, AuthTokenPayload } from '../dtos/auth.dto';
 import { AppError } from './app-error';
 
-const jwtSecret = process.env.JWT_SECRET;
+const jwtSecret = config.jwtSecret;
 const JWT_EXPIRES_IN = '1h';
-
-if (!jwtSecret) {
-  throw new Error('JWT_SECRET is not defined');
-}
 
 export const signAuthToken = (userId: number, role: Role): string => {
   return jwt.sign(

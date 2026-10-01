@@ -57,6 +57,8 @@ You need Node.js 22, npm, and Docker with Docker Compose. The Compose file suppl
 
    `.env` is ignored by Git. The test database URL is used only by integration tests.
 
+   Runtime configuration is loaded and validated centrally at startup, then shared with the database setup, JWT utilities, and server. This allows the API to fail fast on invalid settings before accepting requests. `DATABASE_URL` must be a valid PostgreSQL connection URL, and `JWT_SECRET` must be a non-empty string. `PORT` is optional, defaults to 3000, and must be an integer from 1 to 65535. Invalid runtime settings stop startup with a configuration error. `TEST_DATABASE_URL` is required by the integration test setup and is not part of runtime configuration.
+
 3. Generate the Prisma client, apply the existing migrations, and start the API:
 
    ```bash
