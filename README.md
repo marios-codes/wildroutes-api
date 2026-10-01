@@ -8,7 +8,7 @@ WildRoutes is a REST API for tours, reviews, and bookings. It uses PostgreSQL an
 - Tour CRUD, difficulty filtering, and paginated listing.
 - Reviews with author-only updates and deletion, and one review per user per tour.
 - Bookings with user and admin listings, and one booking per user per tour.
-- Admin category creation and public category listing. The `TourCategory` join table exists in the schema; category assignment is not exposed through an API endpoint.
+- Admin category creation and public category listing, plus admin-only category assignment to tours.
 - Request validation with Zod, intentional API errors, and integration tests against a separate database.
 
 ## Tech stack and structure
@@ -32,6 +32,7 @@ Requests flow through **controller → service → repository → database**. Co
 | Bookings   | `GET /bookings`                                                                                                    | Admin only; paginated list of all bookings.                                     |
 | Categories | `GET /categories`                                                                                                  | Public; lists categories alphabetically.                                        |
 | Categories | `POST /categories`                                                                                                 | Admin only; creates a category.                                                 |
+| Categories | `POST /tours/:tourId/categories`                                                                                    | Admin only; assigns an existing category to a tour. Returns `404 Not Found` if the tour or category does not exist, and `409 Conflict` if it is already assigned. |
 
 List endpoints for tours, reviews, and bookings default to page 1 with a limit of 10 and cap the limit at 100. Category listing is currently unpaginated.
 
