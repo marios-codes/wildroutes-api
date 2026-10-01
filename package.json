@@ -108,7 +108,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "prepare": "husky"
+    "prepare": "node .husky/install.mjs"
   },
   "repository": {
     "type": "git",

@@ -3,6 +3,7 @@ FROM node:22-slim AS builder
 WORKDIR /app
 
 COPY package*.json ./
+COPY .husky/install.mjs .husky/install.mjs
 RUN npm ci
 
 COPY prisma ./prisma
@@ -20,6 +21,7 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package*.json ./
+COPY .husky/install.mjs .husky/install.mjs
 RUN npm ci --omit=dev --omit=optional
 
 COPY --from=builder /app/dist ./dist
