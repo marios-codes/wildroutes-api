@@ -7,9 +7,13 @@ import bookingsRouter from './routes/bookings.routes';
 import categoriesRouter from './routes/categories.routes';
 import { appErrorHandler } from './middlewares/error.middleware';
 import { notFoundHandler } from './middlewares/not-found.middleware';
+import { requestIdHandler } from './middlewares/request-id.middleware';
+import { requestLoggerHandler } from './middlewares/request-logging.middleware';
 
 const app = express();
 
+app.use(requestIdHandler);
+app.use(requestLoggerHandler);
 app.use(express.json());
 
 app.use('/health', healthRouter);
