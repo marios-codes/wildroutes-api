@@ -19,20 +19,20 @@ Requests flow through **controller → service → repository → database**. Co
 
 ## API endpoints
 
-| Area       | Endpoints                                                                                                          | Access and behavior                                                             |
-| ---------- | ------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------- |
-| Health     | `GET /health`                                                                                                      | Public; returns a basic process response. It does not check database readiness. |
-| Auth       | `POST /auth/register`, `POST /auth/login`                                                                          | Public; return a user and JWT.                                                  |
-| Auth       | `GET /auth/me`                                                                                                     | Authenticated; returns the token's user ID and role.                            |
-| Tours      | `GET /tours`, `GET /tours/:id`                                                                                     | Public; list supports `page`, `limit`, and `difficulty`.                        |
-| Tours      | `POST /tours`, `PATCH /tours/:id`, `DELETE /tours/:id`                                                             | Admin only. Deleting a tour with related records returns `409 Conflict`.        |
-| Reviews    | `GET /tours/:tourId/reviews`                                                                                       | Public; paginated with `page` and `limit`.                                      |
-| Reviews    | `POST /tours/:tourId/reviews`, `PATCH /tours/:tourId/reviews/:reviewId`, `DELETE /tours/:tourId/reviews/:reviewId` | Authenticated; users can update or delete only their own reviews.               |
-| Bookings   | `POST /tours/:tourId/bookings`, `GET /bookings/me`                                                                 | Authenticated; users create a booking and list their own bookings.              |
-| Bookings   | `GET /bookings`                                                                                                    | Admin only; paginated list of all bookings.                                     |
-| Categories | `GET /categories`                                                                                                  | Public; lists categories alphabetically.                                        |
-| Categories | `POST /categories`                                                                                                 | Admin only; creates a category.                                                 |
-| Categories | `POST /tours/:tourId/categories`                                                                                    | Admin only; assigns an existing category to a tour. Returns `404 Not Found` if the tour or category does not exist, and `409 Conflict` if it is already assigned. |
+| Area       | Endpoints                                                                                                          | Access and behavior                                                                                                                                               |
+| ---------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Health     | `GET /health`                                                                                                      | Public; returns a basic process response. It does not check database readiness.                                                                                   |
+| Auth       | `POST /auth/register`, `POST /auth/login`                                                                          | Public; return a user and JWT.                                                                                                                                    |
+| Auth       | `GET /auth/me`                                                                                                     | Authenticated; returns the token's user ID and role.                                                                                                              |
+| Tours      | `GET /tours`, `GET /tours/:id`                                                                                     | Public; list supports `page`, `limit`, and `difficulty`.                                                                                                          |
+| Tours      | `POST /tours`, `PATCH /tours/:id`, `DELETE /tours/:id`                                                             | Admin only. Deleting a tour with related records returns `409 Conflict`.                                                                                          |
+| Reviews    | `GET /tours/:tourId/reviews`                                                                                       | Public; paginated with `page` and `limit`.                                                                                                                        |
+| Reviews    | `POST /tours/:tourId/reviews`, `PATCH /tours/:tourId/reviews/:reviewId`, `DELETE /tours/:tourId/reviews/:reviewId` | Authenticated; users can update or delete only their own reviews.                                                                                                 |
+| Bookings   | `POST /tours/:tourId/bookings`, `GET /bookings/me`                                                                 | Authenticated; users create a booking and list their own bookings.                                                                                                |
+| Bookings   | `GET /bookings`                                                                                                    | Admin only; paginated list of all bookings.                                                                                                                       |
+| Categories | `GET /categories`                                                                                                  | Public; lists categories alphabetically.                                                                                                                          |
+| Categories | `POST /categories`                                                                                                 | Admin only; creates a category.                                                                                                                                   |
+| Categories | `POST /tours/:tourId/categories`                                                                                   | Admin only; assigns an existing category to a tour. Returns `404 Not Found` if the tour or category does not exist, and `409 Conflict` if it is already assigned. |
 
 List endpoints for tours, reviews, and bookings default to page 1 with a limit of 10 and cap the limit at 100. Category listing is currently unpaginated.
 
@@ -70,6 +70,14 @@ You need Node.js 22, npm, and Docker with Docker Compose. The Compose file suppl
    The API listens on port 3000 by default. `GET http://localhost:3000/health` returns the basic health response.
 
 To run both PostgreSQL and the API in containers, first apply the migrations from the host as above, then run `docker compose up --build`. The API container uses the database host and development credentials set in `docker-compose.yml`. Compose does not apply migrations automatically.
+
+## Graceful shutdown
+
+On `SIGINT` or `SIGTERM`, the API stops accepting new connections and allows active HTTP requests to finish before disconnecting Prisma. Repeated shutdown signals are ignored.
+
+A fixed ten-second deadline covers HTTP draining and database cleanup. Successful cleanup cancels the deadline and allows the process to exit naturally with code `0`. HTTP-close or database-cleanup failures set exit code `1`; the deadline remains active as a fallback. If the deadline expires, the process logs the timeout and exits immediately with code `1`, potentially interrupting unfinished requests.
+
+Manual process-level checks verified normal shutdown, successful completion of an active database-backed request, repeated-signal protection, stalled HTTP requests, and stalled or rejected Prisma cleanup. These checks are not part of the automated test suite.
 
 ## Tests and CI
 
