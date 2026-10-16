@@ -71,6 +71,17 @@ You need Node.js 22, npm, and Docker with Docker Compose. The Compose file suppl
 
 To run both PostgreSQL and the API in containers, first apply the migrations from the host as above, then run `docker compose up --build`. The API container uses the database host and development credentials set in `docker-compose.yml`. Compose does not apply migrations automatically.
 
+## Liveness and readiness
+
+- `GET /health` is the liveness endpoint. It returns `200` with `{ "message": "Server is up and running" }` without accessing PostgreSQL.
+- `GET /health/ready` is the readiness endpoint. It runs a database connectivity probe and returns `200` with `{ "status": "ready" }` on success, or `503` with `{ "status": "not_ready" }` on failure, timeout, or when shutdown has started. Database error details are not returned.
+
+Readiness waits up to one second. Concurrent checks share one active database probe to prevent overlapping database operations from accumulating. The response deadline does not cancel the underlying probe; it remains shared until it settles. A permanently stalled probe therefore keeps subsequent checks unavailable until it settles or the process restarts.
+
+A hosting platform can use liveness to decide whether to restart the process and readiness to decide whether to send it traffic. A database outage should make the instance unready without failing liveness. These endpoints do not configure hosting probes automatically, and a successful readiness check does not guarantee the next request will succeed.
+
+Automated tests cover readiness service outcomes, its response deadline, shared probes, recovery after rejection, shutdown state, HTTP status mapping, and a successful database-backed readiness request. A manual process-level check verified that an unavailable database produces a safe readiness `503` while liveness remains `200`.
+
 ## Graceful shutdown
 
 On `SIGINT` or `SIGTERM`, the API stops accepting new connections and allows active HTTP requests to finish before disconnecting Prisma. Repeated shutdown signals are ignored.

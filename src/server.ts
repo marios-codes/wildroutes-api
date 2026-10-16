@@ -3,20 +3,19 @@ import logger from './config/logger';
 import { setTimeout, clearTimeout } from 'node:timers';
 import app from './app';
 import prisma from './config/prisma';
+import { isShutdownInitiated, markShutdownStarted } from './lifecycle/shutdown-state';
 
 const PORT = config.port;
-
-let isShutdownInitiated = false;
 
 const server = app.listen(PORT, () => {
   logger.info({ port: PORT }, 'Server listening');
 });
 
 const handleShutdown = (signal: 'SIGINT' | 'SIGTERM'): void => {
-  if (isShutdownInitiated) {
+  if (isShutdownInitiated()) {
     return;
   }
-  isShutdownInitiated = true;
+  markShutdownStarted();
   logger.info({ signal }, 'Shutdown signal received');
 
   const shutdownTimer = setTimeout(() => {
