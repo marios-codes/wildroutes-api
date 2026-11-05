@@ -109,6 +109,8 @@ npm run test:integration
 
 The integration setup maps `TEST_DATABASE_URL` to `DATABASE_URL` before importing the app, keeping these tests separate from the development database. `npm run lint` checks ESLint rules; `npx tsc --noEmit` checks TypeScript types.
 
+At the last full run, `npm run test:unit` passed 116 tests in 13 files and `npm run test:integration` passed 86 tests in 4 files.
+
 GitHub Actions installs dependencies, generates the Prisma client, migrates a fresh PostgreSQL test database, builds, lints, and runs both test suites on pushes to `main` and pull requests.
 
 ## Design and integrity decisions
@@ -118,6 +120,40 @@ GitHub Actions installs dependencies, generates the Prisma client, migrates a fr
 - Restrictive foreign keys prevent a tour with reviews or bookings from being silently deleted; the API returns `409 Conflict`.
 - Protected routes require a JWT. Admin-only actions are checked in middleware; review ownership is checked in the service.
 - Unexpected errors return a generic `500` response rather than exposing database errors or stack traces to API clients.
+- `Review` has an index on `(tourId, id)` to serve the reviews-by-tour list and count queries; see the [case study](#query-performance-case-study-reviews-by-tour).
+
+## Query performance case study: reviews by tour
+
+**Question.** Listing reviews for a tour filters `Review` by `tourId`. PostgreSQL does not index foreign-key columns automatically, and the only existing indexes were the primary key and the unique `(userId, tourId)`, whose leading column is `userId`. Query plans were measured before any change was made.
+
+**Method.** PostgreSQL 17 in Docker. A scratch database, `wildroutes_perf`, was seeded by [scripts/seed-perf.sql](scripts/seed-perf.sql) with 200 tours, 5,000 users and 100,000 reviews (exactly 500 per tour), followed by `ANALYZE`. Each statement ran three times with `EXPLAIN (ANALYZE, BUFFERS)`; the table shows the third run (warm cache) for tour 42. The SQL is the repository's `findReviewsByTour` and `countReviewsByTour` with literal values.
+
+| Query | Before | After | Buffers | Execution |
+|---|---|---|---|---|
+| List, page 1 (`LIMIT 10`) | Index Scan on primary key; 1,854 rows discarded by filter | Index Scan on `Review_tourId_id_idx`; no filter | 26 → 12 | 0.75 → 0.24 ms |
+| List, last page (`OFFSET 490`) | Seq Scan + Sort | Bitmap Index/Heap Scan + Sort | 1030 → 503 | 15.5 → 1.7 ms |
+| Count | Index Only Scan walking the whole `(userId, tourId)` index | Index Only Scan on the new index | 372 → 4 | 7.3 → 0.48 ms |
+
+**Change.** Migration `20261104111653_add_review_tour_id_index` adds `@@index([tourId, id])`: the equality column first, the sort column second.
+
+**Findings.**
+
+- A composite index serves queries on its leading columns. `(userId, tourId)` cannot locate a tour's rows, so the count scanned the entire index (372 pages) instead of reading the 4 pages the new index needs.
+- The planner chooses a plan per statement. Page 1 could stop early on the primary key; the last page needs 500 rows, so the planner switched to a full scan and sort.
+- The new index does not remove the sort on the last page. Tour 42's 500 rows sit on 500 different table pages, so the planner estimated a bitmap scan plus an in-memory sort (cost about 897) as cheaper than an ordered index scan (about 1625).
+- Buffers (pages touched) are more stable evidence than milliseconds.
+
+**Limitations.** The dataset is about 8 MB and fully cached, so the ratios are more meaningful than the absolute times. The seed data is uniform, and results are single runs for one tour. The count's `Heap Fetches: 0` depends on an up-to-date visibility map. The write cost of the extra index was not measured. `OFFSET` pagination still scales with page depth; keyset pagination would be the follow-up.
+
+**Reproduce.** Create the scratch database, apply the migrations and seed it:
+
+```bash
+docker compose exec postgres createdb -U postgres wildroutes_perf
+DATABASE_URL=postgresql://postgres:passwordDev@localhost:5432/wildroutes_perf npx prisma migrate deploy
+docker compose exec -T postgres psql -v ON_ERROR_STOP=1 -U postgres -d wildroutes_perf < scripts/seed-perf.sql
+```
+
+For the "before" measurements, run `DROP INDEX "Review_tourId_id_idx";` and `ANALYZE "Review";` in the scratch database only. The seed script refuses to run against any other database.
 
 ## Container image security
 

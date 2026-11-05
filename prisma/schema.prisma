@@ -54,6 +54,7 @@ model Review {
   tour Tour @relation(fields: [tourId], references: [id], onDelete: Restrict)
 
   @@unique([userId, tourId])
+  @@index([tourId, id])
 }
 
 model Booking {
