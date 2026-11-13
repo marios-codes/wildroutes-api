@@ -1,4 +1,5 @@
 import express from 'express';
+import helmet from 'helmet';
 
 import healthRouter from './routes/health.routes';
 import toursRouter from './routes/tours.routes';
@@ -12,6 +13,7 @@ import { requestLoggerHandler } from './middlewares/request-logging.middleware';
 
 const app = express();
 
+app.use(helmet());
 app.use(requestIdHandler);
 app.use(requestLoggerHandler);
 app.use(express.json());

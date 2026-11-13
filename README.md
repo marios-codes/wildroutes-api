@@ -109,7 +109,7 @@ npm run test:integration
 
 The integration setup maps `TEST_DATABASE_URL` to `DATABASE_URL` before importing the app, keeping these tests separate from the development database. `npm run lint` checks ESLint rules; `npx tsc --noEmit` checks TypeScript types.
 
-At the last full run, `npm run test:unit` passed 116 tests in 13 files and `npm run test:integration` passed 89 tests in 6 files.
+At the last full run, `npm run test:unit` passed 116 tests in 13 files and `npm run test:integration` passed 92 tests in 7 files.
 
 GitHub Actions installs dependencies, generates the Prisma client, migrates a fresh PostgreSQL test database, builds, lints, and runs both test suites on pushes to `main` and pull requests.
 
@@ -134,6 +134,10 @@ Authentication routes are rate limited per client IP with `express-rate-limit`:
 The two routes have separate counters. A limited request returns `429 Too Many Requests` with a `Retry-After` header (seconds until the window resets) and the standard error body. The limiter runs before the controller, so a blocked request never reaches the database or bcrypt. Each route has its own integration test file, because the counters live in process memory.
 
 **Limitations.** Counters are held in memory, so they reset when the process restarts and are not shared between instances; running several instances would need a shared store. Limits are per IP, which slows guessing from one address but does not stop an attacker using many. `trust proxy` is not configured: behind a load balancer it must be set to the real number of proxies, or all users will share one IP or the client IP can be spoofed. This is deferred until deployment.
+
+All responses carry security headers set by [Helmet](https://helmetjs.github.io/) with its default options, registered first so that 404 and error responses get them too. Helmet also removes `X-Powered-By`, so the framework is not advertised. The headers that matter most for a JSON API are `X-Content-Type-Options: nosniff` (browsers must trust the declared `Content-Type` instead of guessing) and `X-Frame-Options` (the API cannot be embedded in another site's frame). An integration test asserts the headers on a success, a `404` and a `401`.
+
+**Header limitations.** Helmet's defaults have not been tuned: `Content-Security-Policy` matters for HTML and does little for a JSON API. `Strict-Transport-Security` is only honoured by browsers over HTTPS, so it is not verified until the service is deployed behind TLS. Helmet is defence in depth and does not replace input validation or CORS, which is not configured yet.
 
 ## Query performance case study: reviews by tour
 
