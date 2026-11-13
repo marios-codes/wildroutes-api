@@ -14,6 +14,12 @@ export const appErrorHandler = (
       message: error.message,
     });
   }
+  if ('type' in error && error.type === 'entity.too.large') {
+    return res.status(413).json({
+      success: false,
+      message: 'Request body too large',
+    });
+  }
   logger.error(
     { errorName: error.name, requestId: res.locals.requestId },
     'Unexpected request failure',

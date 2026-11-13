@@ -109,7 +109,7 @@ npm run test:integration
 
 The integration setup maps `TEST_DATABASE_URL` to `DATABASE_URL` before importing the app, keeping these tests separate from the development database. `npm run lint` checks ESLint rules; `npx tsc --noEmit` checks TypeScript types.
 
-At the last full run, `npm run test:unit` passed 116 tests in 13 files and `npm run test:integration` passed 92 tests in 7 files.
+At the last full run, `npm run test:unit` passed 116 tests in 13 files and `npm run test:integration` passed 94 tests in 8 files.
 
 GitHub Actions installs dependencies, generates the Prisma client, migrates a fresh PostgreSQL test database, builds, lints, and runs both test suites on pushes to `main` and pull requests.
 
@@ -138,6 +138,10 @@ The two routes have separate counters. A limited request returns `429 Too Many R
 All responses carry security headers set by [Helmet](https://helmetjs.github.io/) with its default options, registered first so that 404 and error responses get them too. Helmet also removes `X-Powered-By`, so the framework is not advertised. The headers that matter most for a JSON API are `X-Content-Type-Options: nosniff` (browsers must trust the declared `Content-Type` instead of guessing) and `X-Frame-Options` (the API cannot be embedded in another site's frame). An integration test asserts the headers on a success, a `404` and a `401`.
 
 **Header limitations.** Helmet's defaults have not been tuned: `Content-Security-Policy` matters for HTML and does little for a JSON API. `Strict-Transport-Security` is only honoured by browsers over HTTPS, so it is not verified until the service is deployed behind TLS. Helmet is defence in depth and does not replace input validation or CORS, which is not configured yet.
+
+JSON request bodies are limited to 50 KB, set explicitly on `express.json()` instead of relying on the 100 KB library default. A larger body is rejected with `413 Payload Too Large` and the standard error body, and is not logged as an unexpected failure because it is a client error. The limit is far above any payload this API accepts (tours, reviews, bookings and auth requests are small JSON objects). Integration tests check a 40 KB body is accepted and a 70 KB body is rejected, so the test fails if the limit is removed or set too low.
+
+**Body limit limitations.** The limit applies to JSON bodies only. It caps how much data one request can send, but not how slowly it arrives, so slow-body attacks need timeouts, which are deferred to deployment. A reverse proxy would normally enforce a limit before Node sees the request; the app-level limit is the last line of defence.
 
 ## Query performance case study: reviews by tour
 
