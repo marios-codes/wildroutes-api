@@ -23,7 +23,7 @@ Requests flow through **controller → service → repository → database**. Co
 | ---------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Health     | `GET /health`                                                                                                      | Public liveness check; returns `200` without accessing PostgreSQL.                                                                                                |
 | Health     | `GET /health/ready`                                                                                                | Public readiness check; returns `200` when the database is reachable, or `503` on failure, timeout, or shutdown.                                                  |
-| Auth       | `POST /auth/register`, `POST /auth/login`                                                                          | Public; return a user and JWT.                                                                                                                                    |
+| Auth       | `POST /auth/register`, `POST /auth/login`                                                                          | Public; return a user and JWT. Rate limited per IP (login counts failed attempts, register counts every request); excess returns `429`.                           |
 | Auth       | `GET /auth/me`                                                                                                     | Authenticated; returns the token's user ID and role.                                                                                                              |
 | Tours      | `GET /tours`, `GET /tours/:id`                                                                                     | Public; list supports `page`, `limit`, and `difficulty`.                                                                                                          |
 | Tours      | `POST /tours`, `PATCH /tours/:id`, `DELETE /tours/:id`                                                             | Admin only. Deleting a tour with related records returns `409 Conflict`.                                                                                          |
@@ -109,7 +109,7 @@ npm run test:integration
 
 The integration setup maps `TEST_DATABASE_URL` to `DATABASE_URL` before importing the app, keeping these tests separate from the development database. `npm run lint` checks ESLint rules; `npx tsc --noEmit` checks TypeScript types.
 
-At the last full run, `npm run test:unit` passed 116 tests in 13 files and `npm run test:integration` passed 86 tests in 4 files.
+At the last full run, `npm run test:unit` passed 116 tests in 13 files and `npm run test:integration` passed 89 tests in 6 files.
 
 GitHub Actions installs dependencies, generates the Prisma client, migrates a fresh PostgreSQL test database, builds, lints, and runs both test suites on pushes to `main` and pull requests.
 
@@ -122,17 +122,30 @@ GitHub Actions installs dependencies, generates the Prisma client, migrates a fr
 - Unexpected errors return a generic `500` response rather than exposing database errors or stack traces to API clients.
 - `Review` has an index on `(tourId, id)` to serve the reviews-by-tour list and count queries; see the [case study](#query-performance-case-study-reviews-by-tour).
 
+## Security
+
+Authentication routes are rate limited per client IP with `express-rate-limit`:
+
+| Route                 | Limit             | What counts                                                                                                         |
+| --------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `POST /auth/login`    | 10 per 15 minutes | Failed attempts only. Successful logins do not count, so users behind a shared IP are not locked out by each other. |
+| `POST /auth/register` | 10 per 15 minutes | Every request, including successful ones. Each registration costs a bcrypt hash and creates an account.             |
+
+The two routes have separate counters. A limited request returns `429 Too Many Requests` with a `Retry-After` header (seconds until the window resets) and the standard error body. The limiter runs before the controller, so a blocked request never reaches the database or bcrypt. Each route has its own integration test file, because the counters live in process memory.
+
+**Limitations.** Counters are held in memory, so they reset when the process restarts and are not shared between instances; running several instances would need a shared store. Limits are per IP, which slows guessing from one address but does not stop an attacker using many. `trust proxy` is not configured: behind a load balancer it must be set to the real number of proxies, or all users will share one IP or the client IP can be spoofed. This is deferred until deployment.
+
 ## Query performance case study: reviews by tour
 
 **Question.** Listing reviews for a tour filters `Review` by `tourId`. PostgreSQL does not index foreign-key columns automatically, and the only existing indexes were the primary key and the unique `(userId, tourId)`, whose leading column is `userId`. Query plans were measured before any change was made.
 
 **Method.** PostgreSQL 17 in Docker. A scratch database, `wildroutes_perf`, was seeded by [scripts/seed-perf.sql](scripts/seed-perf.sql) with 200 tours, 5,000 users and 100,000 reviews (exactly 500 per tour), followed by `ANALYZE`. Each statement ran three times with `EXPLAIN (ANALYZE, BUFFERS)`; the table shows the third run (warm cache) for tour 42. The SQL is the repository's `findReviewsByTour` and `countReviewsByTour` with literal values.
 
-| Query | Before | After | Buffers | Execution |
-|---|---|---|---|---|
-| List, page 1 (`LIMIT 10`) | Index Scan on primary key; 1,854 rows discarded by filter | Index Scan on `Review_tourId_id_idx`; no filter | 26 → 12 | 0.75 → 0.24 ms |
-| List, last page (`OFFSET 490`) | Seq Scan + Sort | Bitmap Index/Heap Scan + Sort | 1030 → 503 | 15.5 → 1.7 ms |
-| Count | Index Only Scan walking the whole `(userId, tourId)` index | Index Only Scan on the new index | 372 → 4 | 7.3 → 0.48 ms |
+| Query                          | Before                                                     | After                                           | Buffers    | Execution      |
+| ------------------------------ | ---------------------------------------------------------- | ----------------------------------------------- | ---------- | -------------- |
+| List, page 1 (`LIMIT 10`)      | Index Scan on primary key; 1,854 rows discarded by filter  | Index Scan on `Review_tourId_id_idx`; no filter | 26 → 12    | 0.75 → 0.24 ms |
+| List, last page (`OFFSET 490`) | Seq Scan + Sort                                            | Bitmap Index/Heap Scan + Sort                   | 1030 → 503 | 15.5 → 1.7 ms  |
+| Count                          | Index Only Scan walking the whole `(userId, tourId)` index | Index Only Scan on the new index                | 372 → 4    | 7.3 → 0.48 ms  |
 
 **Change.** Migration `20261104111653_add_review_tour_id_index` adds `@@index([tourId, id])`: the equality column first, the sort column second.
 

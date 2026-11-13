@@ -5,11 +5,11 @@ import {
   getCurrentUserHandler,
 } from '../controllers/auth.controller';
 import { authenticateUser } from '../middlewares/auth.middleware';
-import { loginRateLimiter } from '../middlewares/rate-limit.middleware';
+import { loginRateLimiter, registerRateLimiter } from '../middlewares/rate-limit.middleware';
 
 const router: Router = express.Router();
 
-router.post('/register', registerUserHandler);
+router.post('/register', registerRateLimiter, registerUserHandler);
 router.post('/login', loginRateLimiter, loginUserHandler);
 router.get('/me', authenticateUser, getCurrentUserHandler);
 
