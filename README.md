@@ -109,7 +109,7 @@ npm run test:integration
 
 The integration setup maps `TEST_DATABASE_URL` to `DATABASE_URL` before importing the app, keeping these tests separate from the development database. `npm run lint` checks ESLint rules; `npx tsc --noEmit` checks TypeScript types.
 
-At the last full run, `npm run test:unit` passed 116 tests in 13 files and `npm run test:integration` passed 94 tests in 8 files.
+At the last full run, `npm run test:unit` passed 116 tests in 13 files and `npm run test:integration` passed 95 tests in 9 files.
 
 GitHub Actions installs dependencies, generates the Prisma client, migrates a fresh PostgreSQL test database, builds, lints, and runs both test suites on pushes to `main` and pull requests.
 
@@ -142,6 +142,10 @@ All responses carry security headers set by [Helmet](https://helmetjs.github.io/
 JSON request bodies are limited to 50 KB, set explicitly on `express.json()` instead of relying on the 100 KB library default. A larger body is rejected with `413 Payload Too Large` and the standard error body, and is not logged as an unexpected failure because it is a client error. The limit is far above any payload this API accepts (tours, reviews, bookings and auth requests are small JSON objects). Integration tests check a 40 KB body is accepted and a 70 KB body is rejected, so the test fails if the limit is removed or set too low.
 
 **Body limit limitations.** The limit applies to JSON bodies only. It caps how much data one request can send, but not how slowly it arrives, so slow-body attacks need timeouts, which are deferred to deployment. A reverse proxy would normally enforce a limit before Node sees the request; the app-level limit is the last line of defence.
+
+A request body that is not valid JSON is rejected with `400 Bad Request`, the message `Invalid JSON` and the standard error body. The response does not repeat the parser's message, which can contain a fragment of the client's input, and the request is not logged as an unexpected failure because it is a client error. An integration test sends a truncated JSON string and checks the exact response.
+
+**Body error limitations.** Only the two body-parser errors seen so far are mapped: an oversized body (`413`) and invalid JSON (`400`). Other parser errors, such as an unsupported charset or content encoding, still fall through to `500`. They have no test yet, and mapping them is deferred until there is a reason to.
 
 ## Query performance case study: reviews by tour
 

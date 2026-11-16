@@ -20,6 +20,12 @@ export const appErrorHandler = (
       message: 'Request body too large',
     });
   }
+  if ('type' in error && error.type === 'entity.parse.failed') {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid JSON',
+    });
+  }
   logger.error(
     { errorName: error.name, requestId: res.locals.requestId },
     'Unexpected request failure',
