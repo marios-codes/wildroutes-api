@@ -3,7 +3,7 @@ import { parseRuntimeConfig } from '../../../src/config/env.parser';
 
 const requiredEnvironment = {
   DATABASE_URL: 'postgresql://postgres:password@localhost:5432/wildroutes_test',
-  JWT_SECRET: 'parser-test-secret',
+  JWT_SECRET: 'parser-test-secret-thirty-two-characters-long',
 };
 
 describe('parseRuntimeConfig', () => {
@@ -25,6 +25,38 @@ describe('parseRuntimeConfig', () => {
     expect(() => parseRuntimeConfig({ DATABASE_URL: requiredEnvironment.DATABASE_URL })).toThrow(
       'Invalid environment configuration: JWT_SECRET: Invalid input: expected string, received undefined',
     );
+  });
+
+  it('rejects a JWT_SECRET of 31 characters', () => {
+    expect(() =>
+      parseRuntimeConfig({ ...requiredEnvironment, JWT_SECRET: 'a'.repeat(31) }),
+    ).toThrow(
+      'Invalid environment configuration: JWT_SECRET: JWT_SECRET must be at least 32 characters long',
+    );
+  });
+
+  it('accepts a JWT_SECRET of exactly 32 characters', () => {
+    const secret = 'a'.repeat(32);
+
+    expect(parseRuntimeConfig({ ...requiredEnvironment, JWT_SECRET: secret }).jwtSecret).toBe(
+      secret,
+    );
+  });
+
+  it('does not include a rejected JWT_SECRET in the error message', () => {
+    const rejectedSecret = 'short-secret-marker';
+    let message = '';
+
+    try {
+      parseRuntimeConfig({ ...requiredEnvironment, JWT_SECRET: rejectedSecret });
+    } catch (error) {
+      // The catch variable is `unknown`, so narrow it before reading .message.
+      message = error instanceof Error ? error.message : '';
+    }
+
+    // Prove it threw for the right reason, otherwise the next check passes on an empty string.
+    expect(message).toContain('JWT_SECRET must be at least 32 characters long');
+    expect(message).not.toContain(rejectedSecret);
   });
 
   it('defaults PORT to 3000 when it is omitted', () => {
@@ -68,7 +100,7 @@ describe('parseRuntimeConfig', () => {
 
   it('preserves the empty-secret error and joins multiple validation errors', () => {
     expect(() => parseRuntimeConfig({ ...requiredEnvironment, JWT_SECRET: '', PORT: '0' })).toThrow(
-      'Invalid environment configuration: JWT_SECRET: JWT_SECRET is required; PORT: Too small: expected number to be >=1',
+      'Invalid environment configuration: JWT_SECRET: JWT_SECRET must be at least 32 characters long; PORT: Too small: expected number to be >=1',
     );
   });
 

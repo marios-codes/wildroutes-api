@@ -53,12 +53,12 @@ You need Node.js 22, npm, and Docker with Docker Compose. The Compose file suppl
    ```env
    DATABASE_URL=postgresql://postgres:passwordDev@localhost:5432/wildroutes_dev
    TEST_DATABASE_URL=postgresql://postgres:passwordDev@localhost:5432/wildroutes_test
-   JWT_SECRET=replace-with-a-local-development-secret
+   JWT_SECRET=
    ```
 
-   `.env` is ignored by Git. The test database URL is used only by integration tests.
+   `.env` is ignored by Git. The test database URL is used only by integration tests. `JWT_SECRET` is left empty on purpose: the API refuses to start until you fill it with a generated value, for example the output of `openssl rand -base64 48`. `docker compose` reads the same `.env` and will not start the `api` service without it.
 
-   Runtime configuration is loaded and validated centrally at startup, then shared with the database setup, JWT utilities, and server. This allows the API to fail fast on invalid settings before accepting requests. `DATABASE_URL` must be a valid PostgreSQL connection URL, and `JWT_SECRET` must be a non-empty string. `PORT` is optional, defaults to 3000, and must be an integer from 1 to 65535. Invalid runtime settings stop startup with a configuration error. `TEST_DATABASE_URL` is required by the integration test setup and is not part of runtime configuration.
+   Runtime configuration is loaded and validated centrally at startup, then shared with the database setup, JWT utilities, and server. This allows the API to fail fast on invalid settings before accepting requests. `DATABASE_URL` must be a valid PostgreSQL connection URL, and `JWT_SECRET` must be at least 32 characters, so the API refuses to start with a short signing key. The check is on length only and cannot measure randomness, and the error message names the rule without printing the value. `PORT` is optional, defaults to 3000, and must be an integer from 1 to 65535. Invalid runtime settings stop startup with a configuration error. `TEST_DATABASE_URL` is required by the integration test setup and is not part of runtime configuration.
 
 3. Generate the Prisma client, apply the existing migrations, and start the API:
 
@@ -109,7 +109,7 @@ npm run test:integration
 
 The integration setup maps `TEST_DATABASE_URL` to `DATABASE_URL` before importing the app, keeping these tests separate from the development database. `npm run lint` checks ESLint rules; `npx tsc --noEmit` checks TypeScript types.
 
-At the last full run, `npm run test:unit` passed 116 tests in 13 files and `npm run test:integration` passed 95 tests in 9 files.
+At the last full run, `npm run test:unit` passed 119 tests in 13 files and `npm run test:integration` passed 95 tests in 9 files.
 
 GitHub Actions installs dependencies, generates the Prisma client, migrates a fresh PostgreSQL test database, builds, lints, and runs both test suites on pushes to `main` and pull requests.
 
@@ -146,6 +146,8 @@ JSON request bodies are limited to 50 KB, set explicitly on `express.json()` ins
 A request body that is not valid JSON is rejected with `400 Bad Request`, the message `Invalid JSON` and the standard error body. The response does not repeat the parser's message, which can contain a fragment of the client's input, and the request is not logged as an unexpected failure because it is a client error. An integration test sends a truncated JSON string and checks the exact response.
 
 **Body error limitations.** Only the two body-parser errors seen so far are mapped: an oversized body (`413`) and invalid JSON (`400`). Other parser errors, such as an unsupported charset or content encoding, still fall through to `500`. They have no test yet, and mapping them is deferred until there is a reason to.
+
+**Secrets in this repository.** No signing secret is committed. `.env` is git-ignored, Docker Compose reads `JWT_SECRET` from it, and the CI workflow generates a random secret for each run. A real deployment must provide its own secret through the platform's secret store. Secret rotation is not implemented: changing the secret invalidates every issued token. The CI database password (`postgres`) is a throwaway value for a database that exists only inside the runner.
 
 ## Query performance case study: reviews by tour
 

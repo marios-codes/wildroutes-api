@@ -29,9 +29,15 @@ jobs:
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/wildroutes_test
       TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/wildroutes_test
-      JWT_SECRET: ci-test-secret
+      # JWT_SECRET is generated per run in the first step below, so no secret is stored in the repository.
 
     steps:
+      - name: Generate JWT secret for this run
+        run: |
+          secret="$(openssl rand -hex 32)"
+          echo "::add-mask::$secret"
+          echo "JWT_SECRET=$secret" >> "$GITHUB_ENV"
+
       - name: Checkout repository
         uses: actions/checkout@v6
 
