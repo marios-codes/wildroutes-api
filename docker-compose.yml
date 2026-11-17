@@ -22,7 +22,7 @@ services:
     environment:
       PORT: 3000
       DATABASE_URL: postgresql://postgres:passwordDev@postgres:5432/wildroutes_dev
-      JWT_SECRET: docker-dev-secret
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET must be set in .env (see README)}
     ports:
       - '3000:3000'
     depends_on:
