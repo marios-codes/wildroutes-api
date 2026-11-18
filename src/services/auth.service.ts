@@ -1,6 +1,15 @@
 import bcrypt from 'bcrypt';
-import type { AuthResponseDto, LoginUserDto, RegisterUserDto } from '../dtos/auth.dto';
-import { findUserByEmail, createUser } from '../repositories/users.repository';
+import type {
+  AuthenticatedUser,
+  AuthResponseDto,
+  LoginUserDto,
+  RegisterUserDto,
+} from '../dtos/auth.dto';
+import {
+  findUserByEmail,
+  findAuthenticatedUserById,
+  createUser,
+} from '../repositories/users.repository';
 import { AppError } from '../utils/app-error';
 import { signAuthToken } from '../utils/jwt';
 
@@ -20,6 +29,17 @@ export const registerUser = async (registerUserData: RegisterUserDto): Promise<A
   const token = signAuthToken(newUser.id, newUser.role);
 
   return { user: newUser, token };
+};
+
+// The database, not the token, is the source of truth for who the user is and what role they have.
+// A token whose user no longer exists gets the same generic 401 as any other invalid token.
+export const getAuthenticatedUser = async (userId: number): Promise<AuthenticatedUser> => {
+  const user = await findAuthenticatedUserById(userId);
+  if (user === null) {
+    throw new AppError('Invalid or expired token', 401);
+  }
+
+  return user;
 };
 
 export const loginUser = async (loginUserData: LoginUserDto): Promise<AuthResponseDto> => {
