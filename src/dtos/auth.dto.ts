@@ -29,7 +29,6 @@ export type AuthResponseDto = {
 
 export type AuthTokenPayload = JwtPayload & {
   sub: string;
-  role: Role;
 };
 
 export type AuthenticatedUser = {

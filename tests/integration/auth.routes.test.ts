@@ -30,7 +30,7 @@ describe('POST /auth/register', () => {
       expect(createdUser.email).toBe(createUserPayload.email);
       expect(createdUser.role).toBe('USER');
       expect(decodedToken.sub).toBe(String(createdUserId));
-      expect(decodedToken.role).toBe('USER');
+      expect(decodedToken).not.toHaveProperty('role');
       expect(createdUser).not.toHaveProperty('password');
       expect(createdUser).not.toHaveProperty('passwordHash');
     } finally {
@@ -106,7 +106,7 @@ describe('POST /auth/login', () => {
       expect(loginResponse.body.success).toBe(true);
       expect(loggedInUser.email).toBe(loginUserPayload.email);
       expect(decodedToken.sub).toBe(String(loggedInUser.id));
-      expect(decodedToken.role).toBe('USER');
+      expect(decodedToken).not.toHaveProperty('role');
       expect(loggedInUser).not.toHaveProperty('password');
       expect(loggedInUser).not.toHaveProperty('passwordHash');
     } finally {

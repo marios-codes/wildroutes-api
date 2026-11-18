@@ -7,7 +7,7 @@ import { signAuthToken, verifyAuthToken } from '../../../src/utils/jwt';
 // Read the secret from the same config module the code uses, so the forged tokens
 // below are signed with the real secret and only the algorithm differs.
 const secret = config.jwtSecret;
-const claims = { sub: '1', role: 'USER' };
+const claims = { sub: '1' };
 
 const base64UrlJson = (value: object) => Buffer.from(JSON.stringify(value)).toString('base64url');
 
@@ -38,8 +38,15 @@ describe('verifyAuthToken', () => {
 
 describe('signAuthToken', () => {
   it('signs tokens with HS256', () => {
-    const decoded = jwt.decode(signAuthToken(1, 'USER'), { complete: true });
+    const decoded = jwt.decode(signAuthToken(1), { complete: true });
 
     expect(decoded?.header.alg).toBe('HS256');
+  });
+
+  it('identifies the user by sub and carries no role claim', () => {
+    const decoded = jwt.decode(signAuthToken(1), { complete: true });
+
+    expect(decoded?.payload).toHaveProperty('sub', '1');
+    expect(decoded?.payload).not.toHaveProperty('role');
   });
 });

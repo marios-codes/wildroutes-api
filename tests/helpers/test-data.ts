@@ -78,7 +78,7 @@ export const createTestUser = async () => {
     },
   });
 
-  const token = signAuthToken(createdUser.id, createdUser.role);
+  const token = signAuthToken(createdUser.id);
 
   return {
     createUserPayload,
@@ -107,7 +107,7 @@ export const createTestAdminUser = async () => {
     },
   });
 
-  const token = signAuthToken(admin.id, admin.role);
+  const token = signAuthToken(admin.id);
 
   return {
     createdAdmin: admin,

@@ -24,7 +24,7 @@ Requests flow through **controller → service → repository → database**. Co
 | Health     | `GET /health`                                                                                                      | Public liveness check; returns `200` without accessing PostgreSQL.                                                                                                |
 | Health     | `GET /health/ready`                                                                                                | Public readiness check; returns `200` when the database is reachable, or `503` on failure, timeout, or shutdown.                                                  |
 | Auth       | `POST /auth/register`, `POST /auth/login`                                                                          | Public; return a user and JWT. Rate limited per IP (login counts failed attempts, register counts every request); excess returns `429`.                           |
-| Auth       | `GET /auth/me`                                                                                                     | Authenticated; returns the token's user ID and role.                                                                                                              |
+| Auth       | `GET /auth/me`                                                                                                     | Authenticated; returns the user's ID and current role, read from the database.                                                                                    |
 | Tours      | `GET /tours`, `GET /tours/:id`                                                                                     | Public; list supports `page`, `limit`, and `difficulty`.                                                                                                          |
 | Tours      | `POST /tours`, `PATCH /tours/:id`, `DELETE /tours/:id`                                                             | Admin only. Deleting a tour with related records returns `409 Conflict`.                                                                                          |
 | Reviews    | `GET /tours/:tourId/reviews`                                                                                       | Public; paginated with `page` and `limit`.                                                                                                                        |
@@ -109,7 +109,7 @@ npm run test:integration
 
 The integration setup maps `TEST_DATABASE_URL` to `DATABASE_URL` before importing the app, keeping these tests separate from the development database. `npm run lint` checks ESLint rules; `npx tsc --noEmit` checks TypeScript types.
 
-At the last full run, `npm run test:unit` passed 132 tests in 14 files and `npm run test:integration` passed 95 tests in 9 files.
+At the last full run, `npm run test:unit` passed 136 tests in 15 files and `npm run test:integration` passed 98 tests in 10 files.
 
 GitHub Actions installs dependencies, generates the Prisma client, migrates a fresh PostgreSQL test database, builds, lints, and runs both test suites on pushes to `main` and pull requests.
 
@@ -118,7 +118,7 @@ GitHub Actions installs dependencies, generates the Prisma client, migrates a fr
 - Database unique constraints prevent duplicate bookings and reviews for the same user and tour, even when requests race. Known unique constraint failures become `409 Conflict` responses.
 - Category names have a normalized unique key, so a duplicate with different letter casing also returns `409 Conflict`.
 - Restrictive foreign keys prevent a tour with reviews or bookings from being silently deleted; the API returns `409 Conflict`.
-- Protected routes require a JWT. Admin-only actions are checked in middleware; review ownership is checked in the service.
+- Protected routes require a JWT. The token only identifies the user (`sub`); the user's current role is read from the database on every authenticated request, so a demotion or deletion takes effect on the next request. Admin-only actions are checked in middleware; review ownership is checked in the service.
 - Unexpected errors return a generic `500` response rather than exposing database errors or stack traces to API clients.
 - `Review` has an index on `(tourId, id)` to serve the reviews-by-tour list and count queries; see the [case study](#query-performance-case-study-reviews-by-tour).
 
@@ -155,7 +155,7 @@ A request body that is not valid JSON is rejected with `400 Bad Request`, the me
 
 **JWT algorithm.** Tokens are signed and verified with `HS256` only, and `verify` is given an explicit allow-list instead of relying on the library's defaults. The token header is attacker-controlled, so the server decides which algorithm it accepts. Unit tests check that a token signed with `HS512` using the correct secret and an unsigned `alg: none` token are both rejected with `401`.
 
-**JWT limitations.** The decoded payload is cast to its TypeScript type and not validated at runtime, and the `role` claim is trusted for the whole token lifetime (1 hour), so a role change takes effect only after the token expires. There is no refresh token or secret rotation.
+**JWT limitations.** The token carries only the user ID (`sub`). The role is not in the token: `authenticateUser` looks the user up by ID on every authenticated request and takes the current role from the database. A demoted admin loses access on the next request, and a token for a deleted user is rejected with `401 Invalid or expired token`, the same generic message as any invalid token, so it does not reveal which user IDs exist. This costs one primary-key query per authenticated request and makes authentication depend on the database. The decoded payload is cast to its TypeScript type and not validated at runtime; this was a conscious choice, because forging a token requires the signing secret. There is still no refresh token, no revocation list for tokens that have not expired, and no secret rotation, so a stolen token works until it expires (1 hour) unless its user is deleted.
 
 ## Query performance case study: reviews by tour
 
