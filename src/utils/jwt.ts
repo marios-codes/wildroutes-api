@@ -13,13 +13,15 @@ export const signAuthToken = (userId: number, role: Role): string => {
       role,
     },
     jwtSecret,
-    { expiresIn: JWT_EXPIRES_IN },
+    { algorithm: 'HS256', expiresIn: JWT_EXPIRES_IN },
   );
 };
 
 export const verifyAuthToken = (token: string): AuthTokenPayload => {
   try {
-    return jwt.verify(token, jwtSecret) as AuthTokenPayload;
+    return jwt.verify(token, jwtSecret, {
+      algorithms: ['HS256'],
+    }) as AuthTokenPayload;
   } catch {
     throw new AppError('Invalid or expired token', 401);
   }
