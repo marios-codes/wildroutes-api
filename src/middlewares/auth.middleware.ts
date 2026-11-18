@@ -1,9 +1,10 @@
 import { NextFunction, Request, Response } from 'express';
 import { AppError } from '../utils/app-error';
 import { verifyAuthToken } from '../utils/jwt';
+import { getAuthenticatedUser } from '../services/auth.service';
 import type { Role } from '../dtos/auth.dto';
 
-export const authenticateUser = (req: Request, _res: Response, next: NextFunction) => {
+export const authenticateUser = async (req: Request, _res: Response, next: NextFunction) => {
   const authorizationHeader = req.headers.authorization;
 
   if (!authorizationHeader || !authorizationHeader.startsWith('Bearer ')) {
@@ -24,9 +25,8 @@ export const authenticateUser = (req: Request, _res: Response, next: NextFunctio
     throw new AppError('Invalid or expired token', 401);
   }
 
-  const role = decodedToken.role;
-
-  req.user = { id, role };
+  // The token only proves identity. The role comes from the database so changes apply immediately.
+  req.user = await getAuthenticatedUser(id);
 
   next();
 };

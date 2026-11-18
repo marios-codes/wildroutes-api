@@ -1,5 +1,5 @@
 import prisma from '../config/prisma';
-import type { UserResponseDto } from '../dtos/auth.dto';
+import type { AuthenticatedUser, UserResponseDto } from '../dtos/auth.dto';
 
 type UserWithPasswordHash = UserResponseDto & {
   passwordHash: string;
@@ -21,6 +21,18 @@ export const findUserByEmail = async (email: string): Promise<UserWithPasswordHa
       name: true,
       email: true,
       passwordHash: true,
+      role: true,
+    },
+  });
+};
+
+export const findAuthenticatedUserById = async (id: number): Promise<AuthenticatedUser | null> => {
+  return prisma.user.findUnique({
+    where: {
+      id,
+    },
+    select: {
+      id: true,
       role: true,
     },
   });
