@@ -16,7 +16,9 @@ const app = express();
 app.use(helmet());
 app.use(requestIdHandler);
 app.use(requestLoggerHandler);
-app.use(express.json({ limit: '50kb' }));
+// Largest legitimate body: a review comment of 2000 characters, each written as a 6-byte
+// \uXXXX JSON escape in the worst case (12,000 bytes + about 26 of envelope). 16 KB leaves headroom.
+app.use(express.json({ limit: '16kb' }));
 
 app.use('/health', healthRouter);
 app.use('/tours', toursRouter);

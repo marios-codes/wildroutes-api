@@ -156,3 +156,47 @@ describe('validateLoginUserBody', () => {
     ).toThrow();
   });
 });
+
+describe('auth field length limits', () => {
+  const validRegistration = { name: 'Test User', email: 'user@test.com', password: 'password' };
+  // '@example.com' is 12 characters, so the local part supplies the rest of the length.
+  const emailOfLength = (length: number) => `${'a'.repeat(length - 12)}@example.com`;
+
+  it('accepts a name of 100 characters and rejects 101', () => {
+    expect(validateRegisterUserBody({ ...validRegistration, name: 'a'.repeat(100) }).name).toBe(
+      'a'.repeat(100),
+    );
+    expect(() => validateRegisterUserBody({ ...validRegistration, name: 'a'.repeat(101) })).toThrow(
+      'User name cannot exceed 100 characters',
+    );
+  });
+
+  it('accepts an email of 254 characters and rejects 255', () => {
+    const accepted = validateRegisterUserBody({
+      ...validRegistration,
+      email: emailOfLength(254),
+    });
+
+    expect(accepted.email).toBe(emailOfLength(254));
+    expect(() =>
+      validateRegisterUserBody({ ...validRegistration, email: emailOfLength(255) }),
+    ).toThrow('User email cannot exceed 254 characters');
+  });
+
+  it('accepts a password of 72 characters and rejects 73 on register and login', () => {
+    const message = 'User password cannot exceed 72 characters';
+
+    expect(
+      validateRegisterUserBody({ ...validRegistration, password: 'a'.repeat(72) }).password,
+    ).toBe('a'.repeat(72));
+    expect(() =>
+      validateRegisterUserBody({ ...validRegistration, password: 'a'.repeat(73) }),
+    ).toThrow(message);
+    expect(
+      validateLoginUserBody({ email: 'user@test.com', password: 'a'.repeat(72) }).password,
+    ).toBe('a'.repeat(72));
+    expect(() =>
+      validateLoginUserBody({ email: 'user@test.com', password: 'a'.repeat(73) }),
+    ).toThrow(message);
+  });
+});

@@ -7,9 +7,15 @@ import {
 } from '../dtos/tours.dto';
 import { AppError } from '../utils/app-error';
 
+const TOUR_NAME_MAX_LENGTH = 100;
+
 const createTourSchema = z
   .object({
-    name: z.string().trim().min(1, 'Tour name must be a non-empty string'),
+    name: z
+      .string()
+      .trim()
+      .min(1, 'Tour name must be a non-empty string')
+      .max(TOUR_NAME_MAX_LENGTH, `Tour name cannot exceed ${TOUR_NAME_MAX_LENGTH} characters`),
     duration: z
       .number({ error: 'Tour duration should be of type number' })
       .int('Tour duration must be an integer')

@@ -143,3 +143,21 @@ describe('validateGetToursQuery', () => {
     });
   });
 });
+
+describe('tour name length limit', () => {
+  const validTour = { duration: 3, difficulty: 'EASY', rating: 4.6, numberOfParticipants: 12 };
+
+  it('accepts a name of exactly 100 characters', () => {
+    const name = 'a'.repeat(100);
+
+    expect(validateCreateTourBody({ ...validTour, name }).name).toBe(name);
+  });
+
+  it('rejects a name of 101 characters on create and update', () => {
+    const name = 'a'.repeat(101);
+    const message = 'Tour name cannot exceed 100 characters';
+
+    expect(() => validateCreateTourBody({ ...validTour, name })).toThrow(message);
+    expect(() => validateUpdateTourBody({ name })).toThrow(message);
+  });
+});

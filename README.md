@@ -109,7 +109,7 @@ npm run test:integration
 
 The integration setup maps `TEST_DATABASE_URL` to `DATABASE_URL` before importing the app, keeping these tests separate from the development database. `npm run lint` checks ESLint rules; `npx tsc --noEmit` checks TypeScript types.
 
-At the last full run, `npm run test:unit` passed 123 tests in 14 files and `npm run test:integration` passed 95 tests in 9 files.
+At the last full run, `npm run test:unit` passed 132 tests in 14 files and `npm run test:integration` passed 95 tests in 9 files.
 
 GitHub Actions installs dependencies, generates the Prisma client, migrates a fresh PostgreSQL test database, builds, lints, and runs both test suites on pushes to `main` and pull requests.
 
@@ -139,9 +139,11 @@ All responses carry security headers set by [Helmet](https://helmetjs.github.io/
 
 **Header limitations.** Helmet's defaults have not been tuned: `Content-Security-Policy` matters for HTML and does little for a JSON API. `Strict-Transport-Security` is only honoured by browsers over HTTPS, so it is not verified until the service is deployed behind TLS. Helmet is defence in depth and does not replace input validation.
 
-JSON request bodies are limited to 50 KB, set explicitly on `express.json()` instead of relying on the 100 KB library default. A larger body is rejected with `413 Payload Too Large` and the standard error body, and is not logged as an unexpected failure because it is a client error. The limit is far above any payload this API accepts (tours, reviews, bookings and auth requests are small JSON objects). Integration tests check a 40 KB body is accepted and a 70 KB body is rejected, so the test fails if the limit is removed or set too low.
+Every free-text field has a maximum length, so a request cannot store arbitrarily large values: tour name 100, user name 100, category name 50, review comment 2000, email 254 and password 72 characters. The limits are enforced by the Zod validators before any business logic, and a longer value returns `400`. The password limit matches bcrypt, which only uses the first 72 bytes. Lengths count characters, not bytes, so a password made of multi-byte characters can exceed 72 bytes and be truncated by bcrypt.
 
-**Body limit limitations.** The limit applies to JSON bodies only. It caps how much data one request can send, but not how slowly it arrives, so slow-body attacks need timeouts, which are deferred to deployment. A reverse proxy would normally enforce a limit before Node sees the request; the app-level limit is the last line of defence.
+JSON request bodies are limited to 16 KB, set explicitly on `express.json()` instead of relying on the 100 KB library default. The number is derived from the field limits: the largest legitimate body is a review with a 2000-character comment, which in the worst case JSON encoding (every character written as a 6-byte `\uXXXX` escape) is about 12 KB, so 16 KB leaves roughly a third of headroom. A larger body is rejected with `413 Payload Too Large` and the standard error body, and is not logged as an unexpected failure because it is a client error. Integration tests check a 15 KB body is accepted by the size limit and a 20 KB body is rejected, so the test fails if the limit is removed or set too low. If a field limit is raised, the body limit must be recalculated.
+
+**Body limit limitations.** The limit applies to JSON bodies only. Whitespace around a value is trimmed before its length is checked, so padding counts towards the body limit, not the field limit. It caps how much data one request can send, but not how slowly it arrives, so slow-body attacks need timeouts, which are deferred to deployment. A reverse proxy would normally enforce a limit before Node sees the request; the app-level limit is the last line of defence.
 
 A request body that is not valid JSON is rejected with `400 Bad Request`, the message `Invalid JSON` and the standard error body. The response does not repeat the parser's message, which can contain a fragment of the client's input, and the request is not logged as an unexpected failure because it is a client error. An integration test sends a truncated JSON string and checks the exact response.
 
