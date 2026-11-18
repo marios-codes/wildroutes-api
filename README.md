@@ -109,7 +109,7 @@ npm run test:integration
 
 The integration setup maps `TEST_DATABASE_URL` to `DATABASE_URL` before importing the app, keeping these tests separate from the development database. `npm run lint` checks ESLint rules; `npx tsc --noEmit` checks TypeScript types.
 
-At the last full run, `npm run test:unit` passed 119 tests in 13 files and `npm run test:integration` passed 95 tests in 9 files.
+At the last full run, `npm run test:unit` passed 123 tests in 14 files and `npm run test:integration` passed 95 tests in 9 files.
 
 GitHub Actions installs dependencies, generates the Prisma client, migrates a fresh PostgreSQL test database, builds, lints, and runs both test suites on pushes to `main` and pull requests.
 
@@ -148,6 +148,10 @@ A request body that is not valid JSON is rejected with `400 Bad Request`, the me
 **Body error limitations.** Only the two body-parser errors seen so far are mapped: an oversized body (`413`) and invalid JSON (`400`). Other parser errors, such as an unsupported charset or content encoding, still fall through to `500`. They have no test yet, and mapping them is deferred until there is a reason to.
 
 **Secrets in this repository.** No signing secret is committed. `.env` is git-ignored, Docker Compose reads `JWT_SECRET` from it, and the CI workflow generates a random secret for each run. A real deployment must provide its own secret through the platform's secret store. Secret rotation is not implemented: changing the secret invalidates every issued token. The CI database password (`postgres`) is a throwaway value for a database that exists only inside the runner.
+
+**JWT algorithm.** Tokens are signed and verified with `HS256` only, and `verify` is given an explicit allow-list instead of relying on the library's defaults. The token header is attacker-controlled, so the server decides which algorithm it accepts. Unit tests check that a token signed with `HS512` using the correct secret and an unsigned `alg: none` token are both rejected with `401`.
+
+**JWT limitations.** The decoded payload is cast to its TypeScript type and not validated at runtime, and the `role` claim is trusted for the whole token lifetime (1 hour), so a role change takes effect only after the token expires. There is no refresh token or secret rotation.
 
 ## Query performance case study: reviews by tour
 
