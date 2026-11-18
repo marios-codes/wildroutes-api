@@ -97,3 +97,15 @@ describe('validateAssignCategoryToTourBody', () => {
     expectAssignCategoryToTourBadRequest({ categoryId: 1, unexpectedField: true });
   });
 });
+
+describe('category name length limit', () => {
+  it('accepts a name of exactly 50 characters', () => {
+    const name = 'a'.repeat(50);
+
+    expect(validateCreateCategoryBody({ name }).name).toBe(name);
+  });
+
+  it('rejects a name of 51 characters', () => {
+    expectBadRequest({ name: 'a'.repeat(51) }, 'Category name cannot exceed 50 characters');
+  });
+});

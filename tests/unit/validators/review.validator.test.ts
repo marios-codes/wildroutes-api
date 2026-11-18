@@ -173,3 +173,19 @@ describe('validateGetReviewsQuery', () => {
     });
   });
 });
+
+describe('review comment length limit', () => {
+  it('accepts a comment of exactly 2000 characters', () => {
+    const comment = 'a'.repeat(2000);
+
+    expect(validateCreateReviewBody({ rating: 4, comment }).comment).toBe(comment);
+  });
+
+  it('rejects a comment of 2001 characters on create and update', () => {
+    const comment = 'a'.repeat(2001);
+    const message = 'Review comment cannot exceed 2000 characters';
+
+    expect(() => validateCreateReviewBody({ rating: 4, comment })).toThrow(message);
+    expect(() => validateUpdateReviewBody({ comment })).toThrow(message);
+  });
+});

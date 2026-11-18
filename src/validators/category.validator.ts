@@ -2,9 +2,18 @@ import { z } from 'zod';
 import { CreateCategoryDto, AssignCategoryToTourDto } from '../dtos/category.dto';
 import { AppError } from '../utils/app-error';
 
+const CATEGORY_NAME_MAX_LENGTH = 50;
+
 const createCategorySchema = z
   .object({
-    name: z.string().trim().min(1, 'Category name must be a non-empty string'),
+    name: z
+      .string()
+      .trim()
+      .min(1, 'Category name must be a non-empty string')
+      .max(
+        CATEGORY_NAME_MAX_LENGTH,
+        `Category name cannot exceed ${CATEGORY_NAME_MAX_LENGTH} characters`,
+      ),
   })
   .strict();
 
