@@ -137,7 +137,7 @@ The two routes have separate counters. A limited request returns `429 Too Many R
 
 All responses carry security headers set by [Helmet](https://helmetjs.github.io/) with its default options, registered first so that 404 and error responses get them too. Helmet also removes `X-Powered-By`, so the framework is not advertised. The headers that matter most for a JSON API are `X-Content-Type-Options: nosniff` (browsers must trust the declared `Content-Type` instead of guessing) and `X-Frame-Options` (the API cannot be embedded in another site's frame). An integration test asserts the headers on a success, a `404` and a `401`.
 
-**Header limitations.** Helmet's defaults have not been tuned: `Content-Security-Policy` matters for HTML and does little for a JSON API. `Strict-Transport-Security` is only honoured by browsers over HTTPS, so it is not verified until the service is deployed behind TLS. Helmet is defence in depth and does not replace input validation or CORS, which is not configured yet.
+**Header limitations.** Helmet's defaults have not been tuned: `Content-Security-Policy` matters for HTML and does little for a JSON API. `Strict-Transport-Security` is only honoured by browsers over HTTPS, so it is not verified until the service is deployed behind TLS. Helmet is defence in depth and does not replace input validation.
 
 JSON request bodies are limited to 50 KB, set explicitly on `express.json()` instead of relying on the 100 KB library default. A larger body is rejected with `413 Payload Too Large` and the standard error body, and is not logged as an unexpected failure because it is a client error. The limit is far above any payload this API accepts (tours, reviews, bookings and auth requests are small JSON objects). Integration tests check a 40 KB body is accepted and a 70 KB body is rejected, so the test fails if the limit is removed or set too low.
 
@@ -146,6 +146,8 @@ JSON request bodies are limited to 50 KB, set explicitly on `express.json()` ins
 A request body that is not valid JSON is rejected with `400 Bad Request`, the message `Invalid JSON` and the standard error body. The response does not repeat the parser's message, which can contain a fragment of the client's input, and the request is not logged as an unexpected failure because it is a client error. An integration test sends a truncated JSON string and checks the exact response.
 
 **Body error limitations.** Only the two body-parser errors seen so far are mapped: an oversized body (`413`) and invalid JSON (`400`). Other parser errors, such as an unsupported charset or content encoding, still fall through to `500`. They have no test yet, and mapping them is deferred until there is a reason to.
+
+**CORS.** CORS is intentionally not enabled. It only relaxes the browser's same-origin rule for pages on other sites, and this API has no browser-based consumer; Postman, curl and server-to-server clients are unaffected. If a frontend is added, a narrow allow-list for its origin would be introduced then.
 
 **Secrets in this repository.** No signing secret is committed. `.env` is git-ignored, Docker Compose reads `JWT_SECRET` from it, and the CI workflow generates a random secret for each run. A real deployment must provide its own secret through the platform's secret store. Secret rotation is not implemented: changing the secret invalidates every issued token. The CI database password (`postgres`) is a throwaway value for a database that exists only inside the runner.
 
