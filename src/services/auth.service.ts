@@ -26,7 +26,7 @@ export const registerUser = async (registerUserData: RegisterUserDto): Promise<A
   const passwordHash = await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
 
   const newUser = await createUser({ name, email, passwordHash });
-  const token = signAuthToken(newUser.id, newUser.role);
+  const token = signAuthToken(newUser.id);
 
   return { user: newUser, token };
 };
@@ -57,6 +57,6 @@ export const loginUser = async (loginUserData: LoginUserDto): Promise<AuthRespon
 
   const { id, name, email, role } = existingUser;
   const user = { id, name, email, role };
-  const token = signAuthToken(user.id, user.role);
+  const token = signAuthToken(user.id);
   return { user, token };
 };
