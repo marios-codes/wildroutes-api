@@ -17,6 +17,16 @@ updates:
       # the compiler trusts these type definitions. Minor and patch updates still arrive.
       - dependency-name: '@types/node'
         update-types: ['version-update:semver-major']
+      # Major upgrades of the test runner and compiler need coordinated changes: vitest and
+      # @vitest/coverage-v8 must move together, and typescript-eslint must first accept the new
+      # TypeScript peer range. They are done by hand as deliberate tasks. Remove these rules
+      # to be offered those majors again.
+      - dependency-name: 'vitest'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@vitest/coverage-v8'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
     groups:
       # Must stay FIRST: Dependabot assigns each update to the first group that matches.
       # `prisma` (CLI, devDependency) and `@prisma/*` (client + adapter, dependencies)

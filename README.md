@@ -203,6 +203,7 @@ Dependabot (`.github/dependabot.yml`) opens weekly pull requests for npm package
 - Prisma packages (`prisma`, `@prisma/*`) are grouped so the CLI and client are upgraded and tested together.
 - Minor and patch updates of development dependencies are grouped into one pull request. Runtime dependencies and all other major updates arrive as separate pull requests for individual review.
 - Major updates of the `node` Docker image and of `@types/node` are ignored on purpose. The Node major version is declared in `engines`, the Dockerfile and the CI workflow, and `@types/node` must match it, so a Node upgrade is a manual change to all of them at once.
+- Major updates of `vitest`, `@vitest/coverage-v8` and `typescript` are ignored for now, because they need coordinated changes: Vitest and its coverage package must be upgraded together, and typescript-eslint must first accept the new TypeScript version. Removing the rules from `.github/dependabot.yml` makes Dependabot offer those majors again.
 - Dependabot alerts, security updates and grouped security updates are enabled in the repository settings, so a known vulnerability in a dependency also produces a fix pull request immediately, outside the weekly schedule.
 
-Not covered: the `postgres:17` service image and the `ubuntu-latest` runner label in the CI workflow are not managed by Dependabot. Major upgrades of Vitest 5 and TypeScript 7 were postponed because they need coordinated changes to related packages (`@vitest/coverage-v8` and the typescript-eslint peer ranges respectively).
+Not covered: the `postgres:17` service image and the `ubuntu-latest` runner label in the CI workflow are not managed by Dependabot.
