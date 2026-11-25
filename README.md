@@ -192,6 +192,17 @@ For the "before" measurements, run `DROP INDEX "Review_tourId_id_idx";` and `ANA
 
 ## Container image security
 
-After the test job passes, CI builds a local production image for `linux/amd64` and uses Docker Scout to fail on fixable Critical or High vulnerabilities outside the Node base image. The scan requires read-only Docker Hub credentials in the GitHub Actions secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_SCOUT_TOKEN`; CI does not push an image or deploy the app.
+After the test job passes, CI builds a local production image for `linux/amd64` and uses Docker Scout to fail on fixable Critical or High vulnerabilities outside the Node base image. The scan requires read-only Docker Hub credentials in the secrets `DOCKERHUB_USERNAME` and `DOCKERHUB_SCOUT_TOKEN`, stored in both the GitHub Actions secrets and the separate Dependabot secrets, because GitHub does not expose Actions secrets to workflow runs triggered by Dependabot. CI does not push an image or deploy the app.
 
 This gate does not establish that the entire image has no vulnerabilities. Base-image and unfixed findings need separate review, and the current `node:22-slim` base tag is mutable. A production release would need deliberate base-image updates and an immutable deployment image reference.
+
+## Dependency updates
+
+Dependabot (`.github/dependabot.yml`) opens weekly pull requests for npm packages, the Docker base image and GitHub Actions. Every pull request runs the full CI, including the image scan, before it can be merged, and nothing is merged automatically.
+
+- Prisma packages (`prisma`, `@prisma/*`) are grouped so the CLI and client are upgraded and tested together.
+- Minor and patch updates of development dependencies are grouped into one pull request. Runtime dependencies and all other major updates arrive as separate pull requests for individual review.
+- Major updates of the `node` Docker image and of `@types/node` are ignored on purpose. The Node major version is declared in `engines`, the Dockerfile and the CI workflow, and `@types/node` must match it, so a Node upgrade is a manual change to all of them at once.
+- Dependabot alerts, security updates and grouped security updates are enabled in the repository settings, so a known vulnerability in a dependency also produces a fix pull request immediately, outside the weekly schedule.
+
+Not covered: the `postgres:17` service image and the `ubuntu-latest` runner label in the CI workflow are not managed by Dependabot. Major upgrades of Vitest 5 and TypeScript 7 were postponed because they need coordinated changes to related packages (`@vitest/coverage-v8` and the typescript-eslint peer ranges respectively).
