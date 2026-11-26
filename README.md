@@ -207,3 +207,7 @@ Dependabot (`.github/dependabot.yml`) opens weekly pull requests for npm package
 - Dependabot alerts, security updates and grouped security updates are enabled in the repository settings, so a known vulnerability in a dependency also produces a fix pull request immediately, outside the weekly schedule.
 
 Not covered: the `postgres:17` service image and the `ubuntu-latest` runner label in the CI workflow are not managed by Dependabot.
+
+### Known dependency finding
+
+`npm audit` reports a high-severity ReDoS in `effect` (GHSA-7589-6fvf-x4pw), reached only through `prisma` → `@prisma/config`. Prisma 7.10.1 pins `effect` to 3.20.0, the patched version is 3.22.1, and the fix npm suggests is a Prisma downgrade, so it is deliberately not applied. The API's own code and the Prisma client runtime do not import `effect`; it is used by Prisma's configuration tooling. To be revisited when Prisma publishes a release that updates it, and Dependabot security updates will open that pull request.
